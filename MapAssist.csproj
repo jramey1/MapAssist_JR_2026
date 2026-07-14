@@ -107,6 +107,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Helpers\RotwLootFilter.cs" />
     <Compile Include="MAExport.cs" />
     <Compile Include="Forms\AddAreaForm.cs">
       <SubType>Form</SubType>

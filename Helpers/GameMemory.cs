@@ -45,10 +45,14 @@ namespace MapAssist.Helpers
                 var rosterData = new Roster(IntPtr.Zero, false);
                 Npc lastNpcInteracted = Npc.Skeleton;
                 Pets pets = null;
+                if ((global.OffsetsToPopulate & GameDataOffset.LastHoverData) == GameDataOffset.LastHoverData)
+                {
+                    lastHoverData = processContext.Read<Structs.HoverData>(GameManager.LastHoverDataOffset);
+                }
                 if (!global.IsMAExportEnabled)
                 {
                     menuData = processContext.Read<Structs.MenuData>(GameManager.MenuDataOffset);
-                    lastHoverData = processContext.Read<Structs.HoverData>(GameManager.LastHoverDataOffset);
+                   
                     rosterData = new Roster(GameManager.RosterDataOffset);
                     lastNpcInteracted = (Npc)processContext.Read<ushort>(GameManager.InteractedNpcOffset);
                     pets = new Pets(GameManager.PetsOffset);

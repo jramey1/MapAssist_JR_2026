@@ -26,6 +26,6 @@ namespace MapAssist
         public const bool RunMapOverlay = false;
         public const bool IsMAExportEnabled = true;
         public const Difficulty MAExportDifficulty = Difficulty.Normal;
-        public static GameDataOffset OffsetsToPopulate = IsMAExportEnabled ? GameDataOffset.UnitHashTable : GameDataOffset.All;
+        public static GameDataOffset OffsetsToPopulate = IsMAExportEnabled ? GameDataOffset.UnitHashTable | GameDataOffset.LastHoverData : GameDataOffset.All;
     }
 }
