@@ -199,6 +199,57 @@ namespace MapAssist
             }
         }
 
+        public IEnumerable<UnitItem> getItemsInInventory()
+        {
+            lock (_updateLock)
+            {
+                if (_gameData == null || _gameData.AllItems == null)
+                {
+                    yield break;
+                }
+                foreach (UnitItem item in _gameData.AllItems)
+                {
+                    if (item.IsInInventoryOrCube)
+                    {
+                        yield return item;
+                    }                    
+                }
+            }
+        }
+        public IEnumerable<UnitItem> getItemsInStash(int stashTabIndex)
+        {
+            lock (_updateLock)
+            {
+                if (_gameData == null || _gameData.AllItems == null)
+                {
+                    yield break;
+                }
+                foreach (UnitItem item in _gameData.AllItems)
+                {                    
+                    if ((int)item.StashTab == stashTabIndex)
+                    {
+                        yield return item;
+                    }
+                }
+            }
+        }
+        public IEnumerable<UnitItem> getItemsInBelt()
+        {
+            lock (_updateLock)
+            {
+                if (_gameData == null || _gameData.AllItems == null)
+                {
+                    yield break;
+                }
+                foreach (UnitItem item in _gameData.AllItems)
+                {
+                    if (item.ItemMode == ItemMode.INBELT)
+                    {
+                        yield return item;
+                    }
+                }
+            }
+        }
         /// <summary>
         /// Returns a snapshot of the current hostile monsters. Town NPCs,
         /// mercenaries, and summons are excluded.
@@ -509,6 +560,45 @@ namespace MapAssist
                         if (unitObject.IsStash)
                         {
                             unitStash = unitObject;
+                            return true;
+                        }
+                    }
+                    catch
+                    {
+                        // Skip a unit that became invalid between completed frames.
+                    }
+                }
+
+                return false;
+            }
+        }
+        /// <summary>
+        /// Gets the currently loaded stash object. The stash is represented by
+        /// UnitObject and identified by UnitObject.IsStash.
+        /// </summary>
+        public bool getPortal(out UnitObject unitPortal)
+        {
+            lock (_updateLock)
+            {
+                unitPortal = null;
+
+                if (_gameData == null || _gameData.Objects == null)
+                {
+                    return false;
+                }
+
+                foreach (UnitObject unitObject in _gameData.Objects)
+                {
+                    if (unitObject == null)
+                    {
+                        continue;
+                    }
+
+                    try
+                    {
+                        if (unitObject.IsPortal)
+                        {
+                            unitPortal = unitObject;
                             return true;
                         }
                     }
