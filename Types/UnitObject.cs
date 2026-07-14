@@ -31,7 +31,14 @@ namespace MapAssist.Types
 
             return this;
         }
-
+        public bool IsStash
+        {
+            get
+            {
+                return UnitType == UnitType.Object &&
+                       GameObject == GameObject.Bank;
+            }
+        }
         public bool IsPortal
         {
             get

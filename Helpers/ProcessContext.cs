@@ -26,7 +26,22 @@ namespace MapAssist.Helpers
         public IntPtr BaseAddr { get => _baseAddr; }
         public int ModuleSize { get => _moduleSize; }
         public int ProcessId { get => _process.Id; }
+        public IntPtr GetUnitHashtableOffsetNEW(byte[] buffer)
+        {
+            var pattern = new Pattern("00 C8 01 00 90 03 00 00");
+            var patternAddress = FindPattern(buffer, pattern);
 
+            var offsetBuffer = new byte[4];
+            var resultRelativeAddress = IntPtr.Add(patternAddress, 7);
+            if (!WindowsExternal.ReadProcessMemory(_handle, resultRelativeAddress, offsetBuffer, sizeof(int), out _))
+            {
+                _log.Info($"Failed to find pattern {pattern}");
+                return IntPtr.Zero;
+            }
+
+            var offsetAddressToInt = BitConverter.ToInt32(offsetBuffer, 0);
+            return IntPtr.Add(_baseAddr, offsetAddressToInt);
+        }
         public IntPtr GetUnitHashtableOffset(byte[] buffer)
         {
             var pattern = new Pattern("48 03 C7 49 8B 8C C6");
@@ -162,7 +177,124 @@ namespace MapAssist.Helpers
             var delta = patternAddress.ToInt64() - _baseAddr.ToInt64();
             return IntPtr.Add(_baseAddr, (int)(delta + 7 + offsetAddressToInt));
         }
+        public byte[] ReadModuleBuffer(IntPtr address, int size)
+        {
+            const int pageSize = 0x1000;
+            const long pageMask = pageSize - 1;
 
+            if (size < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(size));
+            }
+
+            var buffer = new byte[size];
+
+            if (size == 0)
+            {
+                return buffer;
+            }
+
+            var totalRead = 0;
+            var offset = 0;
+
+            while (offset < size)
+            {
+                var currentAddress = IntPtr.Add(address, offset);
+
+                // Determine how many bytes remain in the current memory page.
+                // This allows the supplied address to be unaligned.
+                var offsetWithinPage =
+                    (int)(currentAddress.ToInt64() & pageMask);
+
+                var bytesRemainingInPage =
+                    pageSize - offsetWithinPage;
+
+                var bytesToRead =
+                    Math.Min(bytesRemainingInPage, size - offset);
+
+                var pageBuffer = new byte[bytesToRead];
+
+                var success = WindowsExternal.ReadProcessMemory(
+                    _handle,
+                    currentAddress,
+                    pageBuffer,
+                    bytesToRead,
+                    out var bytesRead);
+
+                var countRead = (int)Math.Max(
+                    0,
+                    Math.Min(bytesRead.ToInt64(), bytesToRead));
+
+                if (success || countRead > 0)
+                {
+                    Buffer.BlockCopy(
+                        pageBuffer,
+                        0,
+                        buffer,
+                        offset,
+                        countRead);
+
+                    totalRead += countRead;
+                }
+
+                // Advance by the requested portion of the page, even when it
+                // could not be read. This keeps every buffer offset aligned
+                // with its corresponding process-memory address.
+                offset += bytesToRead;
+            }
+
+            _log.Info(
+                $"Paged memory read complete. " +
+                $"Address=0x{address.ToInt64():X}, " +
+                $"Requested={size:N0}, " +
+                $"Read={totalRead:N0}, " +
+                $"Unread={size - totalRead:N0}");
+
+            return buffer;
+        }
+
+        public T[] ReadFull<T>(IntPtr address, int count) where T : struct
+        {
+            if (count < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(count));
+            }
+
+            var sz = Marshal.SizeOf<T>();
+            var byteCount = checked(sz * count);
+
+            // This replaces only the original single ReadProcessMemory call.
+            var buf = ReadModuleBuffer(address, byteCount);
+
+            var handle = GCHandle.Alloc(buf, GCHandleType.Pinned);
+
+            try
+            {
+                var result = new T[count];
+
+                // Same optimization used by ReadOLD.
+                if (sz == 1)
+                {
+                    Buffer.BlockCopy(buf, 0, result, 0, buf.Length);
+                    return result;
+                }
+
+                for (var i = 0; i < count; i++)
+                {
+                    result[i] = (T)Marshal.PtrToStructure(
+                        IntPtr.Add(
+                            handle.AddrOfPinnedObject(),
+                            i * sz),
+                        typeof(T));
+                }
+
+                return result;
+            }
+            finally
+            {
+                handle.Free();
+            }
+        }
         public T[] Read<T>(IntPtr address, int count) where T : struct
         {
             var sz = Marshal.SizeOf<T>();
@@ -192,8 +324,10 @@ namespace MapAssist.Helpers
                 handle.Free();
             }
         }
-
-        public T Read<T>(IntPtr address) where T : struct => Read<T>(address, 1)[0];
+        public T Read<T>(IntPtr address) where T : struct
+        {
+            return Read<T>(address, 1)[0];
+        }
 
         public IntPtr FindPattern(byte[] buffer, Pattern pattern)
         {

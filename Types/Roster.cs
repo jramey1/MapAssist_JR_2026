@@ -79,10 +79,13 @@ namespace MapAssist.Types
         private List<RosterEntry> _list = new List<RosterEntry>();
         private Dictionary<uint, RosterEntry> _entriesByUnitId = new Dictionary<uint, RosterEntry>();
 
-        public Roster(IntPtr pFirst)
+        public Roster(IntPtr pFirst, bool performUpdate = true)
         {
             _pFirst = pFirst;
-            Update();
+            if (performUpdate)
+            {
+                Update();
+            }
         }
 
         public Roster Update()

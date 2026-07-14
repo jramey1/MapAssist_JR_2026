@@ -49,7 +49,7 @@ namespace MapAssist.Helpers
             SetActiveWindow(hwnd);
         }
 
-        private static void SetActiveWindow(IntPtr hwnd)
+        public static void SetActiveWindow(IntPtr hwnd)
         {
             if (!WindowsExternal.HandleExists(hwnd)) // Handle doesn't exist
             {
@@ -295,51 +295,59 @@ namespace MapAssist.Helpers
             using (var processContext = GetProcessContext())
             {
                 var pid = processContext.ProcessId;
-                var buffer = processContext.Read<byte>(processContext.BaseAddr, processContext.ModuleSize);
+                var buffer = processContext.ReadFull<byte>(processContext.BaseAddr, processContext.ModuleSize);
 
-                if (_UnitHashTableOffset[pid] == IntPtr.Zero)
+                if ((global.OffsetsToPopulate & GameDataOffset.UnitHashTable) == GameDataOffset.UnitHashTable &&
+    _UnitHashTableOffset[pid] == IntPtr.Zero)
                 {
                     _UnitHashTableOffset[pid] = processContext.GetUnitHashtableOffset(buffer);
                     _log.Info($"Found offset {nameof(_UnitHashTableOffset)} 0x{_UnitHashTableOffset[pid].ToInt64() - processContext.BaseAddr.ToInt64():X}");
                 }
 
-                if (_ExpansionCheckOffset[pid] == IntPtr.Zero)
+                if ((global.OffsetsToPopulate & GameDataOffset.ExpansionCheck) == GameDataOffset.ExpansionCheck &&
+                    _ExpansionCheckOffset[pid] == IntPtr.Zero)
                 {
                     _ExpansionCheckOffset[pid] = processContext.GetExpansionOffset(buffer);
                     _log.Info($"Found offset {nameof(_ExpansionCheckOffset)} 0x{_ExpansionCheckOffset[pid].ToInt64() - processContext.BaseAddr.ToInt64():X}");
                 }
 
-                if (_GameNameOffset[pid] == IntPtr.Zero)
+                if ((global.OffsetsToPopulate & GameDataOffset.GameName) == GameDataOffset.GameName &&
+                    _GameNameOffset[pid] == IntPtr.Zero)
                 {
                     _GameNameOffset[pid] = processContext.GetGameNameOffset(buffer);
                     _log.Info($"Found offset {nameof(_GameNameOffset)} 0x{_GameNameOffset[pid].ToInt64() - processContext.BaseAddr.ToInt64():X}");
                 }
 
-                if (_MenuDataOffset[pid] == IntPtr.Zero)
+                if ((global.OffsetsToPopulate & GameDataOffset.MenuData) == GameDataOffset.MenuData &&
+                    _MenuDataOffset[pid] == IntPtr.Zero)
                 {
                     _MenuDataOffset[pid] = processContext.GetMenuDataOffset(buffer);
                     _log.Info($"Found offset {nameof(_MenuDataOffset)} 0x{_MenuDataOffset[pid].ToInt64() - processContext.BaseAddr.ToInt64():X}");
                 }
 
-                if (_RosterDataOffset[pid] == IntPtr.Zero)
+                if ((global.OffsetsToPopulate & GameDataOffset.RosterData) == GameDataOffset.RosterData &&
+                    _RosterDataOffset[pid] == IntPtr.Zero)
                 {
                     _RosterDataOffset[pid] = processContext.GetRosterDataOffset(buffer);
                     _log.Info($"Found offset {nameof(_RosterDataOffset)} 0x{_RosterDataOffset[pid].ToInt64() - processContext.BaseAddr.ToInt64():X}");
                 }
 
-                if (_LastHoverDataOffset[pid] == IntPtr.Zero)
+                if ((global.OffsetsToPopulate & GameDataOffset.LastHoverData) == GameDataOffset.LastHoverData &&
+                    _LastHoverDataOffset[pid] == IntPtr.Zero)
                 {
                     _LastHoverDataOffset[pid] = processContext.GetLastHoverObjectOffset(buffer);
                     _log.Info($"Found offset {nameof(_LastHoverDataOffset)} 0x{_LastHoverDataOffset[pid].ToInt64() - processContext.BaseAddr.ToInt64():X}");
                 }
 
-                if (_InteractedNpcOffset[pid] == IntPtr.Zero)
+                if ((global.OffsetsToPopulate & GameDataOffset.InteractedNpc) == GameDataOffset.InteractedNpc &&
+                    _InteractedNpcOffset[pid] == IntPtr.Zero)
                 {
                     _InteractedNpcOffset[pid] = processContext.GetInteractedNpcOffset(buffer);
                     _log.Info($"Found offset {nameof(_InteractedNpcOffset)} 0x{_InteractedNpcOffset[pid].ToInt64() - processContext.BaseAddr.ToInt64():X}");
                 }
 
-                if (_PetsOffsetOffset[pid] == IntPtr.Zero)
+                if ((global.OffsetsToPopulate & GameDataOffset.Pets) == GameDataOffset.Pets &&
+                    _PetsOffsetOffset[pid] == IntPtr.Zero)
                 {
                     _PetsOffsetOffset[pid] = processContext.GetPetsOffset(buffer);
                     _log.Info($"Found offset {nameof(_PetsOffsetOffset)} 0x{_PetsOffsetOffset[pid].ToInt64() - processContext.BaseAddr.ToInt64():X}");

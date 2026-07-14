@@ -10,50 +10,50 @@ namespace MapAssist.Helpers
         private volatile GameData _gameData;
         private AreaData _areaData;
         private MapApi _mapApi;
-
         public (GameData, AreaData, bool) Get()
         {
             var gameData = GameMemory.GetGameData();
             var changed = false;
-
-            if (gameData != null)
+            if (!global.IsMAExportEnabled)
             {
-                if (gameData.HasGameChanged(_gameData))
+                if (gameData != null)
                 {
-                    if (gameData.MapSeed == 0 && !gameData.MapSeedReady)
+                    if (gameData.HasGameChanged(_gameData))
                     {
-                        _log.Info($"Brute forcing first map seed");
+                        if (gameData.MapSeed == 0 && !gameData.MapSeedReady)
+                        {
+                            _log.Info($"Brute forcing first map seed");
+
+                            changed = true;
+                            _areaData = null;
+                        }
+                        else
+                        {
+                            _log.Info($"Game changed to {gameData.Difficulty} with {gameData.MapSeed} seed");
+                        }
+
+                        _mapApi = new MapApi(gameData);
+                    }
+
+                    if (gameData.HasMapChanged(_gameData) && gameData.MapSeed > 0 && gameData.Area != Area.None)
+                    {
+                        _log.Info($"Area changed to {gameData.Area}");
+                        _areaData = _mapApi.GetMapData(gameData.Area);
+
+                        if (_areaData == null)
+                        {
+                            _log.Info($"Area data not loaded");
+                        }
+                        else if (_areaData.PointsOfInterest == null)
+                        {
+                            _areaData.PointsOfInterest = PointOfInterestHandler.Get(_mapApi, _areaData, gameData);
+                            _log.Info($"Found {_areaData.PointsOfInterest.Count} points of interest");
+                        }
 
                         changed = true;
-                        _areaData = null;
                     }
-                    else
-                    {
-                        _log.Info($"Game changed to {gameData.Difficulty} with {gameData.MapSeed} seed");
-                    }
-
-                    _mapApi = new MapApi(gameData);
-                }
-
-                if (gameData.HasMapChanged(_gameData) && gameData.MapSeed > 0 && gameData.Area != Area.None)
-                {
-                    _log.Info($"Area changed to {gameData.Area}");
-                    _areaData = _mapApi.GetMapData(gameData.Area);
-
-                    if (_areaData == null)
-                    {
-                        _log.Info($"Area data not loaded");
-                    }
-                    else if (_areaData.PointsOfInterest == null)
-                    {
-                        _areaData.PointsOfInterest = PointOfInterestHandler.Get(_mapApi, _areaData, gameData);
-                        _log.Info($"Found {_areaData.PointsOfInterest.Count} points of interest");
-                    }
-
-                    changed = true;
                 }
             }
-
             _gameData = gameData;
 
             ImportFromGameData();

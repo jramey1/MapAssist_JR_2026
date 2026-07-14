@@ -2,6 +2,7 @@ using AutoUpdaterDotNET;
 using Gma.System.MouseKeyHook;
 using MapAssist.Helpers;
 using MapAssist.Settings;
+using MapAssist.Types;
 using NLog;
 using NLog.Config;
 using System;
@@ -33,12 +34,39 @@ namespace MapAssist
         private static IKeyboardMouseEvents globalHook = Hook.GlobalEvents();
         private static readonly Logger _log = LogManager.GetCurrentClassLogger();
 
+        private static bool test()
+        {
+            LoadLoggingConfiguration();
+            if (isPrecompiled)
+            {
+                _log.Info($"Running from commit {githubSha} ({githubRepo} repo, {githubReleaseTag} release)");
+
+                CheckForUpdates();
+            }
+            else
+            {
+                _log.Info($"Running a self-compiled build");
+            }
+
+            LoadMainConfiguration();
+            LoadLootLogConfiguration();
+
+            Process[] d2rProcs = Process.GetProcessesByName("D2r");
+            Process d2rProc = d2rProcs[0];
+            GameManager.SetActiveWindow(d2rProc.MainWindowHandle);
+            var _gameDataReader = new GameDataReader();
+            var (gameData, areaData, changed) = _gameDataReader.Get();
+            GameData _gameData = gameData;
+            return true;
+        }
         /// <summary>
         /// The main entry point for the application.
         /// </summary>
         [STAThread]
         private static void Main()
         {
+            //test();
+            MAExport.instance.initialize();
             try
             {
                 bool createdNew;
@@ -79,25 +107,26 @@ namespace MapAssist
 
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
-
-                try
+                if (!global.IsMAExportEnabled)
                 {
-                    if (!MapApi.StartPipedChild())
+                    try
                     {
-                        MessageBox.Show($"{messageBoxTitle}: Unable to start d2mapapi pipe", messageBoxTitle, MessageBoxButtons.OK);
+                        if (!MapApi.StartPipedChild())
+                        {
+                            MessageBox.Show($"{messageBoxTitle}: Unable to start d2mapapi pipe", messageBoxTitle, MessageBoxButtons.OK);
+                            return;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _log.Fatal(e);
+                        _log.Fatal(e, "Unable to start d2mapapi pipe.");
+
+                        var message = e.Message + Environment.NewLine + Environment.NewLine + e.StackTrace;
+                        MessageBox.Show(message, $"{messageBoxTitle}: Unable to start d2mapapi pipe", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         return;
                     }
                 }
-                catch (Exception e)
-                {
-                    _log.Fatal(e);
-                    _log.Fatal(e, "Unable to start d2mapapi pipe.");
-
-                    var message = e.Message + Environment.NewLine + Environment.NewLine + e.StackTrace;
-                    MessageBox.Show(message, $"{messageBoxTitle}: Unable to start d2mapapi pipe", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
-
                 var contextMenu = new ContextMenuStrip();
 
                 var configMenuItem = new ToolStripMenuItem("Config", null, ShowConfigEditor);
@@ -140,10 +169,12 @@ namespace MapAssist
                 };
 
                 configEditor = new ConfigEditor();
-                backWorkOverlay.DoWork += new DoWorkEventHandler(RunOverlay);
-                backWorkOverlay.WorkerSupportsCancellation = true;
-                backWorkOverlay.RunWorkerAsync();
-
+                if (global.RunMapOverlay)
+                {
+                    backWorkOverlay.DoWork += new DoWorkEventHandler(RunOverlay);
+                    backWorkOverlay.WorkerSupportsCancellation = true;
+                    backWorkOverlay.RunWorkerAsync();
+                }
                 GameManager.OnGameAccessDenied += (_, __) =>
                 {
                     var message = $"MapAssist could not read {GameManager.ProcessName} memory. Please reopen MapAssist as an administrator.";
@@ -152,6 +183,7 @@ namespace MapAssist
                     Application.Exit();
                     Environment.Exit(0);
                 };
+          
 
                 GameManager.MonitorForegroundWindow();
 

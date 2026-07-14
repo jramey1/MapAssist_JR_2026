@@ -57,6 +57,11 @@ namespace MapAssist.Types
             {
                 if (Struct.pInventory != IntPtr.Zero)
                 {
+                    if (global.IsMAExportEnabled)
+                    {
+                        //Can't find the GameManager.ExpansionCheckOffset, so I think this could be a problem if more than 1 player in the game.
+                        return true;
+                    }
                     using (var processContext = GameManager.GetProcessContext())
                     {
                         var playerInfoPtr = processContext.Read<PlayerInfo>(GameManager.ExpansionCheckOffset);

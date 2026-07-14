@@ -40,36 +40,43 @@ namespace MapAssist.Helpers
             {
                 _currentProcessId = processContext.ProcessId;
                 var currentWindowHandle = GameManager.MainWindowHandle;
-
-                var menuData = processContext.Read<Structs.MenuData>(GameManager.MenuDataOffset);
-                var lastHoverData = processContext.Read<Structs.HoverData>(GameManager.LastHoverDataOffset);
-                var lastNpcInteracted = (Npc)processContext.Read<ushort>(GameManager.InteractedNpcOffset);
-                var rosterData = new Roster(GameManager.RosterDataOffset);
-                var pets = new Pets(GameManager.PetsOffset);
-
-                if (!menuData.InGame)
+                var menuData = new Structs.MenuData();
+                var lastHoverData = new Structs.HoverData();
+                var rosterData = new Roster(IntPtr.Zero, false);
+                Npc lastNpcInteracted = Npc.Skeleton;
+                Pets pets = null;
+                if (!global.IsMAExportEnabled)
                 {
-                    if (_sessions.ContainsKey(_currentProcessId))
-                    {
-                        _sessions.Remove(_currentProcessId);
-                    }
+                    menuData = processContext.Read<Structs.MenuData>(GameManager.MenuDataOffset);
+                    lastHoverData = processContext.Read<Structs.HoverData>(GameManager.LastHoverDataOffset);
+                    rosterData = new Roster(GameManager.RosterDataOffset);
+                    lastNpcInteracted = (Npc)processContext.Read<ushort>(GameManager.InteractedNpcOffset);
+                    pets = new Pets(GameManager.PetsOffset);
 
-                    if (_playerArea.ContainsKey(_currentProcessId))
+                    if (!menuData.InGame)
                     {
-                        _playerArea.Remove(_currentProcessId);
-                    }
+                        if (_sessions.ContainsKey(_currentProcessId))
+                        {
+                            _sessions.Remove(_currentProcessId);
+                        }
 
-                    if (_lastMapSeeds.ContainsKey(_currentProcessId))
-                    {
-                        _lastMapSeeds.Remove(_currentProcessId);
-                    }
+                        if (_playerArea.ContainsKey(_currentProcessId))
+                        {
+                            _playerArea.Remove(_currentProcessId);
+                        }
 
-                    if (Corpses.ContainsKey(_currentProcessId))
-                    {
-                        Corpses[_currentProcessId].Clear();
-                    }
+                        if (_lastMapSeeds.ContainsKey(_currentProcessId))
+                        {
+                            _lastMapSeeds.Remove(_currentProcessId);
+                        }
 
-                    return null;
+                        if (Corpses.ContainsKey(_currentProcessId))
+                        {
+                            Corpses[_currentProcessId].Clear();
+                        }
+
+                        return null;
+                    }
                 }
 
                 if (!_sessions.ContainsKey(_currentProcessId))
@@ -158,7 +165,7 @@ namespace MapAssist.Helpers
                 }
 
                 // Extra checks on game details
-                var gameDifficulty = playerUnit.Act.ActMisc.GameDifficulty;
+                var gameDifficulty = global.IsMAExportEnabled ? global.MAExportDifficulty : playerUnit.Act.ActMisc.GameDifficulty;
 
                 if (!gameDifficulty.IsValid())
                 {
@@ -168,19 +175,23 @@ namespace MapAssist.Helpers
                     throw new Exception("Game difficulty out of bounds.");
                 }
 
-                var areaLevel = levelId.Level(gameDifficulty);
+                //var areaLevel = levelId.Level(gameDifficulty);
+                //[JR] Temporarily manually setting difficulty
+                var areaLevel = levelId.Level(Difficulty.Hell);
 
                 // Players
                 var playerList = rawPlayerUnits.Where(x => x.UnitType == UnitType.Player && x.IsPlayer)
                     .Select(x => x.UpdateRosterEntry(rosterData)).ToArray()
                     .Where(x => x != null && x.UnitId < uint.MaxValue).ToDictionary(x => x.UnitId, x => x);
 
-                // Roster
-                foreach (var entry in rosterData.List)
+                if ((global.OffsetsToPopulate & GameDataOffset.RosterData) == GameDataOffset.RosterData)
                 {
-                    entry.UpdateParties(playerUnit.RosterEntry);
+                    // Roster
+                    foreach (var entry in rosterData.List)
+                    {
+                        entry.UpdateParties(playerUnit.RosterEntry);
+                    }
                 }
-
                 // Corpses
                 var corpseList = rawPlayerUnits.Where(x => x.UnitType == UnitType.Player && x.IsCorpse).Concat(Corpses[_currentProcessId].Values).Distinct().ToArray();
                 foreach (var corpse in corpseList)
@@ -203,18 +214,19 @@ namespace MapAssist.Helpers
                     .Where(x => x != null && x.UnitId < uint.MaxValue).ToArray();
 
                 var monsterList = rawMonsterUnits.Where(x => x.UnitType == UnitType.Monster && x.IsMonster).ToArray();
-
-                foreach (var petEntry in pets.List)
+                if ((global.OffsetsToPopulate & GameDataOffset.Pets) == GameDataOffset.Pets)
                 {
-                    var pet = rawMonsterUnits.FirstOrDefault(x => x.UnitId == petEntry.UnitId);
-
-                    if (pet != null)
+                    foreach (var petEntry in pets.List)
                     {
-                        petEntry.IsPlayerOwned = playerUnit.UnitId == petEntry.OwnerId;
-                        pet.PetEntry = petEntry;
+                        var pet = rawMonsterUnits.FirstOrDefault(x => x.UnitId == petEntry.UnitId);
+
+                        if (pet != null)
+                        {
+                            petEntry.IsPlayerOwned = playerUnit.UnitId == petEntry.OwnerId;
+                            pet.PetEntry = petEntry;
+                        }
                     }
                 }
-
                 var mercList = rawMonsterUnits.Where(x => x.IsMerc).ToArray();
                 var summonsList = rawMonsterUnits.Where(x => x.IsSummon).ToArray();
 
@@ -265,9 +277,10 @@ namespace MapAssist.Helpers
                     {
                         cache[item.HashString] = item;
                     }
-
-                    item.IsPlayerOwned = rosterData.List[0].UnitId != uint.MaxValue && item.ItemData.dwOwnerID == rosterData.List[0].UnitId;
-
+                    if ((global.OffsetsToPopulate & GameDataOffset.RosterData) == GameDataOffset.RosterData)
+                    {
+                        item.IsPlayerOwned = rosterData.List[0].UnitId != uint.MaxValue && item.ItemData.dwOwnerID == rosterData.List[0].UnitId;
+                    }
                     if (Items.ItemUnitIdsToSkip[_currentProcessId].Contains(item.UnitId)) continue;
 
                     if (_playerMapChanged[_currentProcessId] && item.IsAnyPlayerHolding && item.Item != Item.HoradricCube && !Items.ItemUnitIdsToSkip[_currentProcessId].Contains(item.UnitId))
@@ -277,8 +290,10 @@ namespace MapAssist.Helpers
                     }
 
                     if (item.UnitId == uint.MaxValue) continue;
-
-                    item.IsPlayerOwned = rosterData.List[0].UnitId != uint.MaxValue && item.ItemData.dwOwnerID == rosterData.List[0].UnitId;
+                    if ((global.OffsetsToPopulate & GameDataOffset.RosterData) == GameDataOffset.RosterData)
+                    {
+                        item.IsPlayerOwned = rosterData.List[0].UnitId != uint.MaxValue && item.ItemData.dwOwnerID == rosterData.List[0].UnitId;
+                    }
 
                     if (item.IsInStore)
                     {
@@ -328,26 +343,30 @@ namespace MapAssist.Helpers
 
                 // Belt items
                 var belt = allItems.FirstOrDefault(x => x.IsPlayerOwned && x.ItemModeMapped == ItemModeMapped.Player && x.ItemData.BodyLoc == BodyLoc.BELT);
-                var beltItems = allItems.Where(x => rosterData.List[0].UnitId != uint.MaxValue && x.ItemModeMapped == ItemModeMapped.Belt).ToArray();
+                if ((global.OffsetsToPopulate & GameDataOffset.RosterData) == GameDataOffset.RosterData)
+                {
+                    var beltItems = allItems.Where(x => rosterData.List[0].UnitId != uint.MaxValue && x.ItemModeMapped == ItemModeMapped.Belt).ToArray();
 
-                var beltSize = belt == null ? 1 :
-                    new Item[] { Item.Sash, Item.LightBelt }.Contains(belt.Item) ? 2 :
-                    new Item[] { Item.Belt, Item.HeavyBelt }.Contains(belt.Item) ? 3 : 4;
+                    var beltSize = belt == null ? 1 :
+                        new Item[] { Item.Sash, Item.LightBelt }.Contains(belt.Item) ? 2 :
+                        new Item[] { Item.Belt, Item.HeavyBelt }.Contains(belt.Item) ? 3 : 4;
 
-                playerUnit.BeltItems = Enumerable.Range(0, 4).Select(i => Enumerable.Range(0, beltSize).Select(j => beltItems.FirstOrDefault(item => item.X == i + j * 4)).ToArray()).ToArray();
-
+                    playerUnit.BeltItems = Enumerable.Range(0, 4).Select(i => Enumerable.Range(0, beltSize).Select(j => beltItems.FirstOrDefault(item => item.X == i + j * 4)).ToArray()).ToArray();
+                }
                 // Unit hover
                 var allUnits = ((UnitAny[])playerList.Values.ToArray()).Concat(monsterList).Concat(mercList).Concat(rawObjectUnits).Concat(rawItemUnits);
 
-                var hoveredUnits = allUnits.Where(x => x.IsHovered).ToArray();
-                if (hoveredUnits.Length > 0) hoveredUnits[0].IsHovered = false;
-
-                if (lastHoverData.IsHovered)
+                if ((global.OffsetsToPopulate & GameDataOffset.LastHoverData) == GameDataOffset.LastHoverData)
                 {
-                    var units = allUnits.Where(x => x.UnitId == lastHoverData.UnitId && x.UnitType == lastHoverData.UnitType).ToArray();
-                    if (units.Length > 0) units[0].IsHovered = true;
-                }
+                    var hoveredUnits = allUnits.Where(x => x.IsHovered).ToArray();
+                    if (hoveredUnits.Length > 0) hoveredUnits[0].IsHovered = false;
 
+                    if (lastHoverData.IsHovered)
+                    {
+                        var units = allUnits.Where(x => x.UnitId == lastHoverData.UnitId && x.UnitType == lastHoverData.UnitType).ToArray();
+                        if (units.Length > 0) units[0].IsHovered = true;
+                    }
+                }
                 // Return data
                 _firstMemoryRead = false;
                 _errorThrown = false;
@@ -438,7 +457,7 @@ namespace MapAssist.Helpers
             return allUnits.Values.ToArray();
         }
 
-        private static void UpdateMemoryData()
+        public static void UpdateMemoryData()
         {
             if (!Items.ItemUnitHashesSeen.ContainsKey(_currentProcessId))
             {
