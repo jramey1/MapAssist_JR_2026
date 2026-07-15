@@ -11,6 +11,13 @@ using SharpDX;
 
 namespace MapAssist
 {
+    public struct ItemGridSize
+    {
+        public int Width;
+        public int Height;
+
+        public int CellCount => Width * Height;
+    }
     public class MAExport
     {
         #region singleton
@@ -40,7 +47,11 @@ namespace MapAssist
         #endregion
 
         private readonly object _updateLock = new object();
-
+        private static readonly System.Reflection.MethodInfo _unitAnyBaseUpdateMethod =
+            typeof(UnitAny).GetMethod(
+                "Update",
+                System.Reflection.BindingFlags.Instance |
+                System.Reflection.BindingFlags.NonPublic);
         private GameDataReader _gameDataReader;
         private GameData _gameData;
         private AreaData _areaData;
@@ -202,7 +213,222 @@ namespace MapAssist
                 return CopyUnitListNoLock();
             }
         }
+        /// <summary>
+        /// Refreshes the supplied UnitAny-derived object in place.
+        ///
+        /// The object reference is not replaced. Any GameData collection, unit-list
+        /// entry, renderer, or caller holding this same object will see the refreshed
+        /// data.
+        ///
+        /// Returns false when the unit is gone, its pointer has been reused, its
+        /// identity changed, or its memory could not be read.
+        /// </summary>
+        public bool UpdateUnit(UnitAny unit)
+        {
+            lock (_updateLock)
+            {
+                if (unit == null ||
+                    unit.PtrUnit == IntPtr.Zero ||
+                    unit.UnitId == uint.MaxValue)
+                {
+                    return false;
+                }
 
+                IntPtr expectedPointer = unit.PtrUnit;
+                UnitType expectedUnitType = unit.UnitType;
+                uint expectedUnitId = unit.UnitId;
+
+                try
+                {
+                    if (!_initialized)
+                    {
+                        InitializeCore();
+                    }
+
+                    /*
+                     * Construct a temporary object around the same address.
+                     *
+                     * The UnitAny constructor reads a fresh Struct and constructs a new
+                     * Path object. This is necessary because the normal UnitAny.Update()
+                     * does not update or replace its private Path object.
+                     */
+                    UnitAny refreshProbe = CreateUnitRefreshProbeNoLock(unit);
+
+                    if (refreshProbe == null)
+                    {
+                        return false;
+                    }
+
+                    /*
+                     * Fully update the temporary object first. This verifies that the
+                     * common and subtype-specific structures can still be read before
+                     * touching the canonical object.
+                     */
+                    if (!UpdateUnitObjectNoLock(refreshProbe))
+                    {
+                        return false;
+                    }
+
+                    if (!HasExpectedUnitIdentity(
+                        refreshProbe,
+                        expectedPointer,
+                        expectedUnitType,
+                        expectedUnitId))
+                    {
+                        return false;
+                    }
+
+                    /*
+                     * CopyFrom replaces Struct and the private Path object while keeping
+                     * the original UnitAny-derived object instance.
+                     */
+                    unit.CopyFrom(refreshProbe);
+
+                    /*
+                     * GameMemory normally marks cached units as IsCached. Force this
+                     * specific update to perform all common and subtype-specific reads.
+                     */
+                    unit.IsCached = false;
+
+                    if (!UpdateUnitObjectNoLock(unit))
+                    {
+                        return false;
+                    }
+
+                    /*
+                     * Verify that the address was not reused for another unit while the
+                     * refresh was taking place.
+                     */
+                    return HasExpectedUnitIdentity(
+                        unit,
+                        expectedPointer,
+                        expectedUnitType,
+                        expectedUnitId);
+                }
+                catch
+                {
+                    /*
+                     * Units can disappear while D2R memory is being read. A failed
+                     * targeted refresh should not stop the consuming update loop.
+                     */
+                    return false;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Creates the correct UnitAny-derived type so its constructor reads a fresh
+        /// Struct and Path from the existing unit's address.
+        /// </summary>
+        private static UnitAny CreateUnitRefreshProbeNoLock(UnitAny unit)
+        {
+            IntPtr pointer = unit.PtrUnit;
+
+            if (unit is UnitPlayer)
+            {
+                return new UnitPlayer(pointer);
+            }
+
+            if (unit is UnitMonster)
+            {
+                return new UnitMonster(pointer);
+            }
+
+            if (unit is UnitObject)
+            {
+                return new UnitObject(pointer);
+            }
+
+            if (unit is UnitItem)
+            {
+                return new UnitItem(pointer);
+            }
+
+            if (unit is UnitMissile)
+            {
+                return new UnitMissile(pointer);
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Calls the correct update implementation without allowing UnitAny's hidden
+        /// Update methods to select the wrong implementation.
+        /// </summary>
+        private static bool UpdateUnitObjectNoLock(UnitAny unit)
+        {
+            UnitPlayer player = unit as UnitPlayer;
+            if (player != null)
+            {
+                return player.Update() != null;
+            }
+
+            UnitMonster monster = unit as UnitMonster;
+            if (monster != null)
+            {
+                return monster.Update() != null;
+            }
+
+            UnitObject objectUnit = unit as UnitObject;
+            if (objectUnit != null)
+            {
+                objectUnit.Update();
+                return objectUnit.IsValidUnit;
+            }
+
+            UnitItem item = unit as UnitItem;
+            if (item != null)
+            {
+                item.Update();
+                return item.IsValidUnit &&
+                       item.UnitId != uint.MaxValue;
+            }
+
+            UnitMissile missile = unit as UnitMissile;
+            if (missile != null)
+            {
+                /*
+                 * UnitMissile does not expose its own public Update method. Invoke the
+                 * protected UnitAny.Update method so its common data, stats, state flags,
+                 * and Area are refreshed.
+                 */
+                if (_unitAnyBaseUpdateMethod == null)
+                {
+                    return false;
+                }
+
+                object result = _unitAnyBaseUpdateMethod.Invoke(
+                    missile,
+                    null);
+
+                return result is UnitAny.UpdateResult &&
+                       (UnitAny.UpdateResult)result ==
+                       UnitAny.UpdateResult.Updated;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Confirms that a memory address still represents the same logical unit.
+        /// </summary>
+        private static bool HasExpectedUnitIdentity(
+            UnitAny unit,
+            IntPtr expectedPointer,
+            UnitType expectedUnitType,
+            uint expectedUnitId)
+        {
+            if (unit == null ||
+                unit.PtrUnit != expectedPointer ||
+                !unit.IsValidUnit)
+            {
+                return false;
+            }
+
+            return unit.UnitType == expectedUnitType &&
+                   unit.UnitId == expectedUnitId;
+        }
         public IEnumerable<UnitItem> getItemsInInventory()
         {
             lock (_updateLock)
@@ -923,6 +1149,7 @@ namespace MapAssist
 
             return unitMonster != null;
         }
+
 
         private static bool IsEnemy(UnitMonster monster)
         {
