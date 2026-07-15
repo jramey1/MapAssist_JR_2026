@@ -7,6 +7,7 @@ using NLog.Config;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using SharpDX;
 
 namespace MapAssist
 {
@@ -169,7 +170,10 @@ namespace MapAssist
             GameData ignored;
             return UpdateUnitList(out ignored);
         }
-
+        public UnitAny FindUnitById(uint id)
+        {
+            return Array.Find(_unitList, x => x.UnitId == id);
+        }
         /// <summary>
         /// Updates MapAssist and returns both GameData and a copied flat UnitAny list
         /// while holding the same update lock. This prevents the two values from coming
@@ -485,16 +489,33 @@ namespace MapAssist
                     {
                         continue;
                     }
-
-                    ItemFilter matchedRule;
-                    string matchReason;
-                    if (ItemMatchesLootFilterNoLock(
-                        item,
-                        out matchedRule,
-                        out matchReason))
+                    var (validItem, rule) = LootFilter.Filter(item, (int)global.MAExportDifficulty, 99);
+                    if (validItem)
                     {
                         result.Add(item);
                     }
+                    else
+                    {
+                        string rotwReason;
+                        if (RotwLootFilter.IsGoodItem(item, out rotwReason))
+                        {
+                            result.Add(item);
+                        }
+                    }
+                    //if (!IsValidGroundItem(item))
+                    //{
+                    //    continue;
+                    //}
+
+                    //ItemFilter matchedRule;
+                    //string matchReason;
+                    //if (ItemMatchesLootFilterNoLock(
+                    //    item,
+                    //    out matchedRule,
+                    //    out matchReason))
+                    //{
+                    //    result.Add(item);
+                    //}
                 }
 
                 return result.ToArray();
@@ -632,7 +653,7 @@ namespace MapAssist
             {
                 // This matches the supplied GameMemory.cs, which intentionally uses
                 // Hell area levels for the mod's loot-filter evaluation.
-                areaLevel = _gameData.Area.Level(Difficulty.Hell);
+                areaLevel = _gameData.Area.Level(global.MAExportDifficulty);
             }
             catch
             {
@@ -652,12 +673,23 @@ namespace MapAssist
 
             try
             {
-                return LootFilter.Matches(
-                    item,
-                    areaLevel,
-                    playerLevel,
-                    out matchedRule,
-                    out matchReason);
+                var (validItem, rule) = LootFilter.Filter(item, (int)global.MAExportDifficulty, 99);
+                if (validItem)
+                {
+                    matchedRule = rule;
+                    matchReason = string.Empty;
+                    return true;
+                }
+                else
+                {
+                    string rotwReason;
+                    if (RotwLootFilter.IsGoodItem(item, out rotwReason))
+                    {
+                        matchedRule = null;
+                        matchReason = string.Empty;
+                        return true;
+                    }
+                }
             }
             catch
             {
@@ -665,6 +697,9 @@ namespace MapAssist
                 matchReason = string.Empty;
                 return false;
             }
+            matchedRule = null;
+            matchReason = string.Empty;
+            return false;
         }
 
         private static bool IsValidGroundItem(UnitItem item)

@@ -181,7 +181,7 @@ namespace MapAssist.Helpers
 
                 //var areaLevel = levelId.Level(gameDifficulty);
                 //[JR] Temporarily manually setting difficulty
-                var areaLevel = levelId.Level(Difficulty.Hell);
+                var areaLevel = levelId.Level(global.MAExportDifficulty);
 
                 // Players
                 var playerList = rawPlayerUnits.Where(x => x.UnitType == UnitType.Player && x.IsPlayer)

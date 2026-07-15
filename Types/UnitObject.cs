@@ -21,7 +21,6 @@ namespace MapAssist.Types
                 using (var processContext = GameManager.GetProcessContext())
                 {
                     ObjectData = processContext.Read<ObjectData>(Struct.pUnitData);
-
                     if (ObjectData.pObjectTxt != IntPtr.Zero)
                     {
                         ObjectText = processContext.Read<ObjectTxt>(ObjectData.pObjectTxt);
