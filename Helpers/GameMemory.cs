@@ -49,10 +49,12 @@ namespace MapAssist.Helpers
                 {
                     lastHoverData = processContext.Read<Structs.HoverData>(GameManager.LastHoverDataOffset);
                 }
-                if (!global.IsMAExportEnabled)
+                if ((global.OffsetsToPopulate & GameDataOffset.MenuData) == GameDataOffset.MenuData)
                 {
                     menuData = processContext.Read<Structs.MenuData>(GameManager.MenuDataOffset);
-                   
+                }
+                if (!global.IsMAExportEnabled)
+                {
                     rosterData = new Roster(GameManager.RosterDataOffset);
                     lastNpcInteracted = (Npc)processContext.Read<ushort>(GameManager.InteractedNpcOffset);
                     pets = new Pets(GameManager.PetsOffset);

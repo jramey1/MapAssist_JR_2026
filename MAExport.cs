@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using SharpDX;
+using System.Linq;
 
 namespace MapAssist
 {
@@ -220,21 +221,29 @@ namespace MapAssist
                 }
             }
         }
-        public IEnumerable<UnitItem> getItemsInStash(int stashTabIndex)
+        public IEnumerable<UnitItem> getItemsInStash(StashTab stashTab)
         {
             lock (_updateLock)
             {
+                if (stashTab == StashTab.None)
+                {
+                    throw new ArgumentOutOfRangeException(
+                        nameof(stashTab),
+                        "StashTab.None does not represent a real stash tab.");
+                }
+
                 if (_gameData == null || _gameData.AllItems == null)
                 {
-                    yield break;
+                    return new UnitItem[0];
                 }
-                foreach (UnitItem item in _gameData.AllItems)
-                {                    
-                    if ((int)item.StashTab == stashTabIndex)
-                    {
-                        yield return item;
-                    }
-                }
+
+                return _gameData.AllItems
+                    .Where(item =>
+                        item != null &&
+                        item.IsValidItem &&
+                        item.ItemModeMapped == ItemModeMapped.Stash &&
+                        item.StashTab == stashTab)
+                    .ToArray();
             }
         }
         public IEnumerable<UnitItem> getItemsInBelt()

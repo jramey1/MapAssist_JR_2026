@@ -298,7 +298,7 @@ namespace MapAssist.Helpers
                 var buffer = processContext.ReadFull<byte>(processContext.BaseAddr, processContext.ModuleSize);
 
                 if ((global.OffsetsToPopulate & GameDataOffset.UnitHashTable) == GameDataOffset.UnitHashTable &&
-    _UnitHashTableOffset[pid] == IntPtr.Zero)
+                    _UnitHashTableOffset[pid] == IntPtr.Zero)
                 {
                     _UnitHashTableOffset[pid] = processContext.GetUnitHashtableOffset(buffer);
                     _log.Info($"Found offset {nameof(_UnitHashTableOffset)} 0x{_UnitHashTableOffset[pid].ToInt64() - processContext.BaseAddr.ToInt64():X}");

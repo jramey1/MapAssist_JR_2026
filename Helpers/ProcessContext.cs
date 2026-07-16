@@ -96,7 +96,8 @@ namespace MapAssist.Helpers
 
         public IntPtr GetMenuDataOffset(byte[] buffer)
         {
-            var pattern = new Pattern("48 89 45 B7 4C 8D 35 ? ? ? ?");
+            var pattern = new Pattern("48 8D 0D ? ? ? ? 0F B6 04 08 C3");
+            //var pattern = new Pattern("48 89 45 B7 4C 8D 35 ? ? ? ?");
             var patternAddress = FindPattern(buffer, pattern);
 
             var offsetBuffer = new byte[4];
