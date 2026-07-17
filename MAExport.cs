@@ -430,6 +430,10 @@ namespace MapAssist
             return unit.UnitType == expectedUnitType &&
                    unit.UnitId == expectedUnitId;
         }
+        public UnitAny getUnitById(uint id)
+        {
+            return Array.Find(CurrentUnitList, x => x.UnitId == id);
+        }
         public IEnumerable<UnitItem> getItemsInInventory()
         {
             lock (_updateLock)
