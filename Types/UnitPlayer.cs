@@ -1,4 +1,4 @@
-﻿using MapAssist.Helpers;
+using MapAssist.Helpers;
 using MapAssist.Structs;
 using System;
 using System.Collections.Generic;
@@ -152,6 +152,26 @@ namespace MapAssist.Types
             });
         }
 
+        public override string GetInfo()
+        {
+            return base.GetInfo() +
+                   " PlayerName=" + (Name ?? "<null>") +
+                   " PlayerClass=" + Struct.playerClass +
+                   " Level=" + (Stats == null ? 0 : Level) +
+                   " Experience=" + (Stats == null ? 0 : Experience) +
+                   " Life=" + (Stats == null ? 0 : Life) +
+                   " MaxLife=" + (Stats == null ? 0 : MaxLife) +
+                   " Mana=" + (Stats == null ? 0 : Mana) +
+                   " MaxMana=" + (Stats == null ? 0 : MaxMana) +
+                   " HealthPercentage=" + (Stats == null ? 0 : HealthPercentage) +
+                   " LifePercentage=" + (Stats == null ? 0 : LifePercentage) +
+                   " ManaPercentage=" + (Stats == null ? 0 : ManaPercentage) +
+                   " LevelProgress=" + (Stats == null ? 0 : LevelProgress) +
+                   " BeltSize=" + BeltSize +
+                   " WearingItemCount=" + (WearingItems == null ? 0 : WearingItems.Length) +
+                   " InitSeedHash=" + InitSeedHash +
+                   " EndSeedHash=" + EndSeedHash;
+        }
         public override string HashString => Name + "/" + Position.X + "/" + Position.Y;
 
         private static readonly long[] PlayerLevelsExp = new long[]

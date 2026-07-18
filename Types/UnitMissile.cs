@@ -1,4 +1,4 @@
-﻿using MapAssist.Helpers;
+using MapAssist.Helpers;
 using System;
 
 namespace MapAssist.Types
@@ -12,5 +12,11 @@ namespace MapAssist.Types
         }
 
         public override string HashString => Missile + "/" + Position.X + "/" + Position.Y;
+
+        public override string GetInfo()
+        {
+            return base.GetInfo() +
+                   " Missile=" + Missile;
+        }
     }
 }

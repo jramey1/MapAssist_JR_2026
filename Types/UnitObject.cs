@@ -1,4 +1,4 @@
-﻿using MapAssist.Helpers;
+using MapAssist.Helpers;
 using MapAssist.Structs;
 using System;
 
@@ -58,5 +58,22 @@ namespace MapAssist.Types
         public bool IsArmorWeapRack => UnitType == UnitType.Object && ObjectData.pObjectTxt != IntPtr.Zero && Struct.Mode == 0 && Chest.ArmorWeapRacks.Contains(GameObject);
 
         public override string HashString => GameObject + "/" + Position.X + "/" + Position.Y;
+
+        public override string GetInfo()
+        {
+            return base.GetInfo() +
+                   " GameObject=" + GameObject +
+                   " InteractType=" + ObjectData.InteractType +
+                   " PortalFlags=" + ObjectData.PortalFlags +
+                   " pObjectTxt=0x" + ObjectData.pObjectTxt.ToInt64().ToString("X") +
+                   " pShrineTxt=0x" + ObjectData.pShrineTxt.ToInt64().ToString("X") +
+                   " IsStash=" + IsStash +
+                   " IsPortal=" + IsPortal +
+                   " IsWaypoint=" + IsWaypoint +
+                   " IsShrine=" + IsShrine +
+                   " IsWell=" + IsWell +
+                   " IsChest=" + IsChest +
+                   " IsArmorWeapRack=" + IsArmorWeapRack;
+        }
     }
 }
