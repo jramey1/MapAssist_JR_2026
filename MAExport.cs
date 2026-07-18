@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using SharpDX;
 using System.Linq;
+using System.Text;
 
 namespace MapAssist
 {
@@ -871,7 +872,142 @@ namespace MapAssist
                 return false;
             }
         }
+        #region reports
+        public string GetAllUnitsReport()
+        {
+            Update();
 
+            StringBuilder sb = new StringBuilder();
+
+            foreach (MapAssist.Types.UnitAny u in MAExport.instance.CurrentUnitList)
+            {
+                sb.AppendLine(u.ToString());
+            }
+
+            return sb.ToString();
+        }
+
+        public string GetAllEnemiesReport()
+        {
+            Update();
+
+            StringBuilder sb = new StringBuilder();
+
+            foreach (MapAssist.Types.UnitMonster unitMonster in MAExport.instance.getEnemies())
+            {
+                sb.AppendLine(
+                    unitMonster.UnitId.ToString() + ": " +
+                    unitMonster.X.ToString() + "," +
+                    unitMonster.Y.ToString());
+            }
+
+            return sb.ToString();
+        }
+
+        public string GetAllItemsReport()
+        {
+            Update();
+
+            StringBuilder sb = new StringBuilder();
+            int count = 0;
+
+            foreach (MapAssist.Types.UnitItem unitItem in MAExport.instance.CurrentGameData.AllItems)
+            {
+                ++count;
+
+                sb.AppendLine(
+                    unitItem.Item.ToString() + ": " +
+                    unitItem.UnitId.ToString() + ": " +
+                    unitItem.X.ToString() + "," +
+                    unitItem.Y.ToString() +
+                    " StashTab: " +
+                    ((int)unitItem.StashTab).ToString());
+            }
+
+            return "Count: " + count.ToString() +
+                   Environment.NewLine +
+                   sb.ToString();
+        }
+
+        public string GetInventoryItemsReport()
+        {
+            Update();
+
+            StringBuilder sb = new StringBuilder();
+            int count = 0;
+
+            foreach (MapAssist.Types.UnitItem unitItem in MAExport.instance.getItemsInInventory())
+            {
+                ++count;
+
+                sb.AppendLine(
+                    unitItem.Item.ToString() + ": " +
+                    unitItem.UnitId.ToString() + ": " +
+                    unitItem.X.ToString() + "," +
+                    unitItem.Y.ToString() +
+                    " StashTab: " +
+                    ((int)unitItem.StashTab).ToString());
+            }
+
+            return "Count: " + count.ToString() +
+                   Environment.NewLine +
+                   sb.ToString();
+        }
+
+        public string GetFilteredItemsReport()
+        {
+            Update();
+
+            StringBuilder sb = new StringBuilder();
+
+            foreach (MapAssist.Types.UnitItem unitItem in MAExport.instance.CurrentGameData.AllItems)
+            {
+                if (MAExport.instance.itemMatchesLootFilter(unitItem))
+                {
+                    sb.AppendLine(
+                        unitItem.Item.ToString() + ": " +
+                        unitItem.UnitId.ToString() + ": " +
+                        unitItem.X.ToString() + "," +
+                        unitItem.Y.ToString());
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        public string GetGroundItemsReport()
+        {
+            Update();
+
+            StringBuilder sb = new StringBuilder();
+
+            foreach (MapAssist.Types.UnitItem unitItem in MAExport.instance.getItemsOnGround())
+            {
+                sb.AppendLine(
+                    unitItem.GetInfo();
+            }
+
+            return sb.ToString();
+        }
+
+        public string GetFilteredGroundItemsReport()
+        {
+            Update();
+
+            StringBuilder sb = new StringBuilder();
+
+            foreach (MapAssist.Types.UnitItem unitItem in MAExport.instance.getItemsOnGroundMatchingLootFilter())
+            {
+                sb.AppendLine(
+                    unitItem.Item.ToString() + ": " +
+                    unitItem.UnitId.ToString() + ": " +
+                    unitItem.X.ToString() + "," +
+                    unitItem.Y.ToString());
+            }
+
+            return sb.ToString();
+        }
+        #endregion reports
         private bool ItemMatchesLootFilterNoLock(
             UnitItem item,
             out ItemFilter matchedRule,

@@ -242,6 +242,20 @@ namespace MapAssist.Types
 
         public static bool operator !=(UnitAny unit1, UnitAny unit2) => !(unit1 == unit2);
 
+        public string GetInfo()
+        {
+           return "Name=" + HashString +
+" UnitId=" + UnitId +
+" PtrUnit=0x" + PtrUnit.ToInt64().ToString("X") +
+" TxtFileNo=" + TxtFileNo +
+" UnitType=" + UnitType +
+" Mode=" + Struct.Mode +
+" X=" + X +
+" Y=" + Y +
+" pUnitData=0x" + Struct.pUnitData.ToInt64().ToString("X") +
+" pPath=0x" + Struct.pPath.ToInt64().ToString("X") +
+" pListNext=0x" + Struct.pListNext.ToInt64().ToString("X");
+        }
         public override string ToString()
         {
             return HashString;
