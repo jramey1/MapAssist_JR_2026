@@ -197,6 +197,30 @@ namespace MapAssist.Types
             return ItemData.ItemQuality;
         }
 
+        public override string GetInfo()
+        {
+            return base.GetInfo() +
+                   " Item=" + Item +
+                   " ItemBaseName=" + (ItemBaseName ?? "<null>").Replace("\r", "\\r").Replace("\n", "\\n") +
+                   " ItemMode=" + ItemMode +
+                   " ItemModeMapped=" + ItemModeMapped +
+                   " ItemQuality=" + ItemData.ItemQuality +
+                   " MappedItemQuality=" + (MappedItemQuality.HasValue ? MappedItemQuality.Value.ToString() : "<null>") +
+                   " ItemLevel=" + ItemData.ilvl +
+                   " ItemFlags=" + ItemData.ItemFlags +
+                   " OwnerUnitId=" + ItemData.dwOwnerID +
+                   " InvPage=" + ItemData.InvPage +
+                   " BodyLoc=" + ItemData.BodyLoc +
+                   " StashTab=" + StashTab +
+                   " VendorOwner=" + VendorOwner +
+                   " IsValidItem=" + IsValidItem +
+                   " IsPlayerOwned=" + IsPlayerOwned +
+                   " IsEthereal=" + IsEthereal +
+                   " IsIdentified=" + IsIdentified +
+                   " IsRuneWord=" + IsRuneWord +
+                   " IsDropped=" + IsDropped +
+                   " IsAnyPlayerHolding=" + IsAnyPlayerHolding;
+        }
         public override string HashString => Item + "/" + Position.X + "/" + Position.Y;
     }
 }

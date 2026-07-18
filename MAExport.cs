@@ -879,9 +879,9 @@ namespace MapAssist
 
             StringBuilder sb = new StringBuilder();
 
-            foreach (MapAssist.Types.UnitAny u in MAExport.instance.CurrentUnitList)
+            foreach (UnitAny unit in CurrentUnitList)
             {
-                sb.AppendLine(u.ToString());
+                sb.AppendLine(unit.GetInfo());
             }
 
             return sb.ToString();
@@ -893,12 +893,9 @@ namespace MapAssist
 
             StringBuilder sb = new StringBuilder();
 
-            foreach (MapAssist.Types.UnitMonster unitMonster in MAExport.instance.getEnemies())
+            foreach (UnitMonster unitMonster in getEnemies())
             {
-                sb.AppendLine(
-                    unitMonster.UnitId.ToString() + ": " +
-                    unitMonster.X.ToString() + "," +
-                    unitMonster.Y.ToString());
+                sb.AppendLine(unitMonster.GetInfo());
             }
 
             return sb.ToString();
@@ -911,22 +908,13 @@ namespace MapAssist
             StringBuilder sb = new StringBuilder();
             int count = 0;
 
-            foreach (MapAssist.Types.UnitItem unitItem in MAExport.instance.CurrentGameData.AllItems)
+            foreach (UnitItem unitItem in CurrentGameData.AllItems)
             {
                 ++count;
-
-                sb.AppendLine(
-                    unitItem.Item.ToString() + ": " +
-                    unitItem.UnitId.ToString() + ": " +
-                    unitItem.X.ToString() + "," +
-                    unitItem.Y.ToString() +
-                    " StashTab: " +
-                    ((int)unitItem.StashTab).ToString());
+                sb.AppendLine(unitItem.GetInfo());
             }
 
-            return "Count: " + count.ToString() +
-                   Environment.NewLine +
-                   sb.ToString();
+            return "Count: " + count + Environment.NewLine + sb;
         }
 
         public string GetInventoryItemsReport()
@@ -936,22 +924,13 @@ namespace MapAssist
             StringBuilder sb = new StringBuilder();
             int count = 0;
 
-            foreach (MapAssist.Types.UnitItem unitItem in MAExport.instance.getItemsInInventory())
+            foreach (UnitItem unitItem in getItemsInInventory())
             {
                 ++count;
-
-                sb.AppendLine(
-                    unitItem.Item.ToString() + ": " +
-                    unitItem.UnitId.ToString() + ": " +
-                    unitItem.X.ToString() + "," +
-                    unitItem.Y.ToString() +
-                    " StashTab: " +
-                    ((int)unitItem.StashTab).ToString());
+                sb.AppendLine(unitItem.GetInfo());
             }
 
-            return "Count: " + count.ToString() +
-                   Environment.NewLine +
-                   sb.ToString();
+            return "Count: " + count + Environment.NewLine + sb;
         }
 
         public string GetFilteredItemsReport()
@@ -960,15 +939,11 @@ namespace MapAssist
 
             StringBuilder sb = new StringBuilder();
 
-            foreach (MapAssist.Types.UnitItem unitItem in MAExport.instance.CurrentGameData.AllItems)
+            foreach (UnitItem unitItem in CurrentGameData.AllItems)
             {
-                if (MAExport.instance.itemMatchesLootFilter(unitItem))
+                if (itemMatchesLootFilter(unitItem))
                 {
-                    sb.AppendLine(
-                        unitItem.Item.ToString() + ": " +
-                        unitItem.UnitId.ToString() + ": " +
-                        unitItem.X.ToString() + "," +
-                        unitItem.Y.ToString());
+                    sb.AppendLine(unitItem.GetInfo());
                 }
             }
 
@@ -981,10 +956,9 @@ namespace MapAssist
 
             StringBuilder sb = new StringBuilder();
 
-            foreach (MapAssist.Types.UnitItem unitItem in MAExport.instance.getItemsOnGround())
+            foreach (UnitItem unitItem in getItemsOnGround())
             {
-                sb.AppendLine(
-                    unitItem.GetInfo();
+                sb.AppendLine(unitItem.GetInfo());
             }
 
             return sb.ToString();
@@ -996,13 +970,9 @@ namespace MapAssist
 
             StringBuilder sb = new StringBuilder();
 
-            foreach (MapAssist.Types.UnitItem unitItem in MAExport.instance.getItemsOnGroundMatchingLootFilter())
+            foreach (UnitItem unitItem in getItemsOnGroundMatchingLootFilter())
             {
-                sb.AppendLine(
-                    unitItem.Item.ToString() + ": " +
-                    unitItem.UnitId.ToString() + ": " +
-                    unitItem.X.ToString() + "," +
-                    unitItem.Y.ToString());
+                sb.AppendLine(unitItem.GetInfo());
             }
 
             return sb.ToString();
