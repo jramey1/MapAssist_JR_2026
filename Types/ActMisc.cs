@@ -26,7 +26,6 @@ namespace MapAssist.Types
         }
 
         public Difficulty GameDifficulty => _actMisc.GameDifficulty;
-        public Act Act => new Act(_actMisc.pAct);
         public Level LevelFirst => new Level(_actMisc.pLevelFirst);
         public Area RealTombArea => _actMisc.RealTombArea;
         public ulong InitSeedHash => _actMisc.dwInitSeedHash;
