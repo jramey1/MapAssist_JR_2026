@@ -1,4 +1,4 @@
-﻿using MapAssist.Helpers;
+using MapAssist.Helpers;
 using MapAssist.Structs;
 using System;
 using System.Collections.Generic;
@@ -114,5 +114,21 @@ namespace MapAssist.Types
         }
 
         public override string HashString => Npc + "/" + Position.X + "/" + Position.Y;
+
+        public override string GetInfo()
+        {
+            return base.GetInfo() +
+                   " Npc=" + Npc +
+                   " MonsterType=" + MonsterType +
+                   " RawMonsterType=" + MonsterData.MonsterType +
+                   " HealthPercentage=" + HealthPercentage +
+                   " IsSuperUnique=" + IsSuperUnique +
+                   " BossLineID=" + MonsterData.BossLineID +
+                   " ShrineType=" + MonsterData.ShrineType +
+                   " Immunities=" + (Immunities == null ? "<null>" : string.Join(",", Immunities)) +
+                   " IsMerc=" + IsMerc +
+                   " IsSummon=" + IsSummon +
+                   " IsPlayerOwned=" + IsPlayerOwned;
+        }
     }
 }
