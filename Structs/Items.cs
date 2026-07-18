@@ -14,11 +14,13 @@ namespace MapAssist.Structs
         public string BaseItemName;
         public ItemMode Mode;
     }
+
     [StructLayout(LayoutKind.Explicit)]
     public struct ItemInventory
     {
         [FieldOffset(0x20)] public IntPtr InvGridPtr;
     }
+
     [StructLayout(LayoutKind.Explicit)]
     public struct ItemData
     {
@@ -27,6 +29,7 @@ namespace MapAssist.Structs
         [FieldOffset(0x0C)] public uint dwOwnerID; //which unitId owns this item (online only) - otherwise 0 = body, 1 = personal stash, 2 = sharedstash1, 3 = sharedstash2, 4 = sharedstash3, 5 = belt
         [FieldOffset(0x18)] public ItemFlags ItemFlags;
         [FieldOffset(0x34)] public uint uniqueOrSetId;
+        [FieldOffset(0x38)] public uint ilvl;
         [FieldOffset(0x42)] public short RarePrefix;
         [FieldOffset(0x44)] public short RareSuffix;
         [FieldOffset(0x46)] public short AutoAffix;
