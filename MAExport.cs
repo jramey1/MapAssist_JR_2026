@@ -886,7 +886,78 @@ namespace MapAssist
 
             return sb.ToString();
         }
+        public string GetAllRawUnitsReport()
+        {
+            var rawObjectUnits = GameMemory.GetUnits<UnitObject>(UnitType.Object, true);
+            var rawPlayerUnits = GameMemory.GetUnits<UnitPlayer>(UnitType.Player);
+            var rawMonsterUnits = GameMemory.GetUnits<UnitMonster>(UnitType.Monster);
+            var rawMissileUnits = GameMemory.GetUnits<UnitMissile>(UnitType.Missile, false);
+            var rawServerMissileUnits = GameMemory.GetUnits<UnitMissile>(UnitType.ServerMissile, false);
+            var allItems = GameMemory.GetUnits<UnitItem>(UnitType.Item, true);
 
+            StringBuilder sb = new StringBuilder();
+            int count = 0;
+
+            sb.AppendLine("#rawObjectUnits");
+            foreach (var unit in rawObjectUnits)
+            {
+                sb.AppendLine(count.ToString() + ": " +
+                    (unit == null ? "NULL" : unit.GetInfo()));
+                ++count;
+            }
+
+            count = 0;
+            sb.AppendLine();
+            sb.AppendLine("#rawPlayerUnits");
+            foreach (var unit in rawPlayerUnits)
+            {
+                sb.AppendLine(count.ToString() + ": " +
+                    (unit == null ? "NULL" : unit.GetInfo()));
+                ++count;
+            }
+
+            count = 0;
+            sb.AppendLine();
+            sb.AppendLine("#rawMonsterUnits");
+            foreach (var unit in rawMonsterUnits)
+            {
+                sb.AppendLine(count.ToString() + ": " +
+                    (unit == null ? "NULL" : unit.GetInfo()));
+                ++count;
+            }
+
+            count = 0;
+            sb.AppendLine();
+            sb.AppendLine("#rawMissileUnits");
+            foreach (var unit in rawMissileUnits)
+            {
+                sb.AppendLine(count.ToString() + ": " +
+                    (unit == null ? "NULL" : unit.GetInfo()));
+                ++count;
+            }
+
+            count = 0;
+            sb.AppendLine();
+            sb.AppendLine("#rawServerMissileUnits");
+            foreach (var unit in rawServerMissileUnits)
+            {
+                sb.AppendLine(count.ToString() + ": " +
+                    (unit == null ? "NULL" : unit.GetInfo()));
+                ++count;
+            }
+
+            count = 0;
+            sb.AppendLine();
+            sb.AppendLine("#allItems");
+            foreach (var unit in allItems)
+            {
+                sb.AppendLine(count.ToString() + ": " +
+                    (unit == null ? "NULL" : unit.GetInfo()));
+                ++count;
+            }
+
+            return sb.ToString();
+        }
         public string GetAllEnemiesReport()
         {
             Update();
@@ -1064,8 +1135,9 @@ namespace MapAssist
             }
         }
 
-        private void InitializeCore()
+        public void InitializeCore()
         {
+            if (_initialized) { return; }
             LoadLoggingConfiguration();
             LoadMainConfiguration();
             LoadLootLogConfiguration();

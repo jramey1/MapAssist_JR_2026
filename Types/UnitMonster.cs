@@ -121,7 +121,7 @@ namespace MapAssist.Types
                    " Npc=" + Npc +
                    " MonsterType=" + MonsterType +
                    " RawMonsterType=" + MonsterData.MonsterType +
-                   " HealthPercentage=" + HealthPercentage +
+                   //" HealthPercentage=" + HealthPercentage +
                    " IsSuperUnique=" + IsSuperUnique +
                    " BossLineID=" + MonsterData.BossLineID +
                    " ShrineType=" + MonsterData.ShrineType +

@@ -416,7 +416,7 @@ namespace MapAssist.Helpers
 
         public static UnitPlayer PlayerUnit => PlayerUnits.TryGetValue(_currentProcessId, out var player) ? player : null;
 
-        private static T[] GetUnits<T>(UnitType unitType, bool saveToCache = false) where T : UnitAny
+        public static T[] GetUnits<T>(UnitType unitType, bool saveToCache = false) where T : UnitAny
         {
             var allUnits = new Dictionary<uint, T>();
             Func<IntPtr, T> CreateUnit = (ptr) => (T)Activator.CreateInstance(typeof(T), new object[] { ptr });
