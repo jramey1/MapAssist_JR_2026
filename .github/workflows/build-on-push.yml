@@ -1,6 +1,6 @@
 name: Build on push
 
-on: [push]
+on: [push, pull_request]
 
 permissions:
   contents: write
@@ -18,6 +18,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        ref: ${{ github.head_ref || github.ref_name }}
 
     - name: Apply UnitAny GetInfo report changes
       shell: powershell
