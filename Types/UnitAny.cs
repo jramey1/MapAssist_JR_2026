@@ -242,6 +242,10 @@ namespace MapAssist.Types
 
         public static bool operator !=(UnitAny unit1, UnitAny unit2) => !(unit1 == unit2);
 
+        public override string ToString()
+        {
+            return HashString;
+        }
         public enum UpdateResult
         {
             Updated,

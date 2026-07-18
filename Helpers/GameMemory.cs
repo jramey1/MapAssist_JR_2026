@@ -58,32 +58,32 @@ namespace MapAssist.Helpers
                     rosterData = new Roster(GameManager.RosterDataOffset);
                     lastNpcInteracted = (Npc)processContext.Read<ushort>(GameManager.InteractedNpcOffset);
                     pets = new Pets(GameManager.PetsOffset);
-
-                    if (!menuData.InGame)
-                    {
-                        if (_sessions.ContainsKey(_currentProcessId))
-                        {
-                            _sessions.Remove(_currentProcessId);
-                        }
-
-                        if (_playerArea.ContainsKey(_currentProcessId))
-                        {
-                            _playerArea.Remove(_currentProcessId);
-                        }
-
-                        if (_lastMapSeeds.ContainsKey(_currentProcessId))
-                        {
-                            _lastMapSeeds.Remove(_currentProcessId);
-                        }
-
-                        if (Corpses.ContainsKey(_currentProcessId))
-                        {
-                            Corpses[_currentProcessId].Clear();
-                        }
-
-                        return null;
-                    }
                 }
+                if (!menuData.InGame)
+                {
+                    if (_sessions.ContainsKey(_currentProcessId))
+                    {
+                        _sessions.Remove(_currentProcessId);
+                    }
+
+                    if (_playerArea.ContainsKey(_currentProcessId))
+                    {
+                        _playerArea.Remove(_currentProcessId);
+                    }
+
+                    if (_lastMapSeeds.ContainsKey(_currentProcessId))
+                    {
+                        _lastMapSeeds.Remove(_currentProcessId);
+                    }
+
+                    if (Corpses.ContainsKey(_currentProcessId))
+                    {
+                        Corpses[_currentProcessId].Clear();
+                    }
+
+                    return null;
+                }
+
 
                 if (!_sessions.ContainsKey(_currentProcessId))
                 {
