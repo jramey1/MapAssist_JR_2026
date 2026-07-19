@@ -886,13 +886,33 @@ namespace MapAssist
 
             return sb.ToString();
         }
+        public UnitObject[] GetRawObjectUnits()
+        {
+            return GameMemory.GetUnits<UnitObject>(UnitType.Object, false);
+        }
+        public UnitPlayer[] GetRawPlayerUnits()
+        {
+            return GameMemory.GetUnits<UnitPlayer>(UnitType.Player, false);
+        }
+        public UnitMonster[] GetRawMonsterUnits()
+        {
+            return GameMemory.GetUnits<UnitMonster>(UnitType.Monster, false);
+        }
+        public UnitMissile[] GetRawMissileUnits()
+        {
+            return GameMemory.GetUnits<UnitMissile>(UnitType.Missile, false);
+        }
+        public UnitItem[] GetRawItemUnits()
+        {
+            return GameMemory.GetUnits<UnitItem>(UnitType.Item, false);
+        }
         public string GetAllRawUnitsReport()
         {
             var rawObjectUnits = GameMemory.GetUnits<UnitObject>(UnitType.Object, true);
             var rawPlayerUnits = GameMemory.GetUnits<UnitPlayer>(UnitType.Player);
             var rawMonsterUnits = GameMemory.GetUnits<UnitMonster>(UnitType.Monster);
             var rawMissileUnits = GameMemory.GetUnits<UnitMissile>(UnitType.Missile, false);
-            var rawServerMissileUnits = GameMemory.GetUnits<UnitMissile>(UnitType.ServerMissile, false);
+            //var rawServerMissileUnits = GameMemory.GetUnits<UnitMissile>(UnitType.ServerMissile, false);
             var allItems = GameMemory.GetUnits<UnitItem>(UnitType.Item, true);
 
             StringBuilder sb = new StringBuilder();
@@ -936,15 +956,15 @@ namespace MapAssist
                 ++count;
             }
 
-            count = 0;
-            sb.AppendLine();
-            sb.AppendLine("#rawServerMissileUnits");
-            foreach (var unit in rawServerMissileUnits)
-            {
-                sb.AppendLine(count.ToString() + ": " +
-                    (unit == null ? "NULL" : unit.GetInfo()));
-                ++count;
-            }
+            //count = 0;
+            //sb.AppendLine();
+            //sb.AppendLine("#rawServerMissileUnits");
+            //foreach (var unit in rawServerMissileUnits)
+            //{
+            //    sb.AppendLine(count.ToString() + ": " +
+            //        (unit == null ? "NULL" : unit.GetInfo()));
+            //    ++count;
+            //}
 
             count = 0;
             sb.AppendLine();

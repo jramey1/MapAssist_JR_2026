@@ -81,6 +81,7 @@ namespace MapAssist.Types
         {
             get
             {
+                if (Stats == null) { return 0; }
                 if (Stats.TryGetValue(Types.Stats.Stat.Life, out var health) &&
                     Stats.TryGetValue(Types.Stats.Stat.MaxLife, out var maxHp) && maxHp > 0)
                 {

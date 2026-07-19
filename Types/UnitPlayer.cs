@@ -82,18 +82,18 @@ namespace MapAssist.Types
                 return false;
             }
         }
-        public float HealthPercentage
-        {
-            get
-            {
-                if (Stats.TryGetValue(Types.Stats.Stat.Life, out var health) &&
-                    Stats.TryGetValue(Types.Stats.Stat.MaxLife, out var maxHp) && maxHp > 0)
-                {
-                    return (float)health / maxHp;
-                }
-                return 0.0f;
-            }
-        }
+        //public float HealthPercentage
+        //{
+        //    get
+        //    {
+        //        if (Stats.TryGetValue(Types.Stats.Stat.Life, out var health) &&
+        //            Stats.TryGetValue(Types.Stats.Stat.MaxLife, out var maxHp) && maxHp > 0)
+        //        {
+        //            return (float)health / maxHp;
+        //        }
+        //        return 0.0f;
+        //    }
+        //}
         public UnitItem[] WearingItems { get; set; } = new UnitItem[] { };
         public bool IsActiveInfinity => WearingItems.Any(item => item.IsRuneWord && item.Prefixes[0] == 20566 && (item.ItemData.ItemFlags & ItemFlags.IFLAG_SWITCHOUT) == 0); // When joining a game IFLAG_SWITCHIN/IFLAG_SWITCHOUT isn't set, so need to check whether IFLAG_SWITCHOUT doesn't exist
         public UnitItem[][] BeltItems { get; set; } = new UnitItem[][] { };
@@ -163,7 +163,7 @@ namespace MapAssist.Types
                    " MaxLife=" + (Stats == null ? 0 : MaxLife) +
                    " Mana=" + (Stats == null ? 0 : Mana) +
                    " MaxMana=" + (Stats == null ? 0 : MaxMana) +
-                   " HealthPercentage=" + (Stats == null ? 0 : HealthPercentage) +
+                   //" HealthPercentage=" + (Stats == null ? 0 : HealthPercentage) +
                    " LifePercentage=" + (Stats == null ? 0 : LifePercentage) +
                    " ManaPercentage=" + (Stats == null ? 0 : ManaPercentage) +
                    " LevelProgress=" + (Stats == null ? 0 : LevelProgress) +
