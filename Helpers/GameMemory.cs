@@ -115,7 +115,7 @@ namespace MapAssist.Helpers
                     if (_errorThrown) return null;
 
                     _errorThrown = true;
-                    throw new Exception("Player unit not found.");
+                    throw new PlayerUnitNotFoundException("Player unit not found.");
                 }
                 _errorThrown = false;
 
