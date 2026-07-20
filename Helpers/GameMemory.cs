@@ -113,7 +113,8 @@ namespace MapAssist.Helpers
                 if (playerUnit == null)
                 {
                     if (_errorThrown) return null;
-
+                    //UnitPlayer[] rawServerPlayerUnits = GetUnits<UnitPlayer>(UnitType.ServerPlayer, false);
+                    //System.IO.File.WriteAllText("c:\\temp\\c.txt", MAExport.GetUnitPlayerInfoList(rawServerPlayerUnits));
                     _errorThrown = true;
                     throw new Exception("Player unit not found.");
                 }
