@@ -230,11 +230,72 @@ namespace MapAssist.Types
             }
         }
 
-        public bool IsCorpse => Struct.isCorpse && UnitId != GameMemory.PlayerUnit.UnitId && Area != Area.None;
-        public bool IsDeadPlayerUnit =>
+        /// <summary>
+        /// True for the clickable player corpse/body lying on the ground.
+        /// This is intentionally different from IsPlayerDeadAwaitingResurrection:
+        /// both records use player mode 17, but only the dead player-state record
+        /// retains the character's Level, MaxLife, and Experience base stats.
+        /// </summary>
+        public bool IsCorpseOnGround =>
+            IsMode17PlayerUnit &&
+            !HasCharacterIdentityStats();
+
+        /// <summary>
+        /// True for the player's dead character-state unit before resurrection.
+        /// This is not the clickable corpse/body on the ground.
+        /// </summary>
+        public bool IsPlayerDeadAwaitingResurrection =>
+            IsMode17PlayerUnit &&
+            HasCharacterIdentityStats();
+
+        /// <summary>
+        /// True for either mode-17 player representation: the dead character state
+        /// or the clickable corpse/body. Prefer one of the explicit properties above.
+        /// </summary>
+        public bool IsMode17PlayerUnit =>
             UnitType == UnitType.Player &&
             Struct.Mode == 17 &&
             Struct.pAct != IntPtr.Zero;
+
+        [Obsolete("Use IsCorpseOnGround. IsCorpse previously depended on an unreliable raw flag and GameMemory.PlayerUnit.")]
+        public bool IsCorpse => IsCorpseOnGround;
+
+        [Obsolete("Use IsCorpseOnGround for the clickable body, or IsPlayerDeadAwaitingResurrection for the dead player state.")]
+        public bool IsDeadPlayerUnit => IsCorpseOnGround;
+
+        private bool HasCharacterIdentityStats()
+        {
+            try
+            {
+                Dictionary<Stats.Stat, int> baseStats = StatsBase;
+
+                if (baseStats == null)
+                {
+                    if (Struct.pStatsListEx == IntPtr.Zero)
+                    {
+                        return false;
+                    }
+
+                    StatListExStruct statsStruct;
+                    using (var processContext = GameManager.GetProcessContext())
+                    {
+                        statsStruct = processContext.Read<StatListExStruct>(Struct.pStatsListEx);
+                    }
+
+                    baseStats = ReadStats(statsStruct.BaseStats.Stats).Item1;
+                }
+
+                return baseStats != null &&
+                       baseStats.ContainsKey(Types.Stats.Stat.Level) &&
+                       baseStats.ContainsKey(Types.Stats.Stat.MaxLife) &&
+                       baseStats.ContainsKey(Types.Stats.Stat.Experience);
+            }
+            catch
+            {
+                // Player units can disappear while their stat lists are being read.
+                return false;
+            }
+        }
 
         public double DistanceTo(UnitAny other) => Math.Sqrt((Math.Pow(other.X - Position.X, 2) + Math.Pow(other.Y - Position.Y, 2)));
 
