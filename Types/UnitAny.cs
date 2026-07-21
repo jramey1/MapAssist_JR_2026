@@ -80,6 +80,10 @@ namespace MapAssist.Types
                             StateFlags = StatsStruct.StateFlags;
 
                             (Stats, StatLayers) = ReadStats(StatsStruct.Stats);
+                            if (Stats == null)
+                            {
+                                Stats = new Dictionary<Stats.Stat, int>();
+                            }
                             (StatsBase, StatLayersBase) = ReadStats(StatsStruct.BaseStats.Stats);
 
                             if (UnitType == UnitType.Item)
@@ -227,6 +231,10 @@ namespace MapAssist.Types
         }
 
         public bool IsCorpse => Struct.isCorpse && UnitId != GameMemory.PlayerUnit.UnitId && Area != Area.None;
+        public bool IsDeadPlayerUnit =>
+            UnitType == UnitType.Player &&
+            Struct.Mode == 17 &&
+            Struct.pAct != IntPtr.Zero;
 
         public double DistanceTo(UnitAny other) => Math.Sqrt((Math.Pow(other.X - Position.X, 2) + Math.Pow(other.Y - Position.Y, 2)));
 

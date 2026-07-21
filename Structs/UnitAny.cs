@@ -23,15 +23,25 @@ namespace MapAssist.Structs
 
         [FieldOffset(0xC6)] public ushort Y;
         [FieldOffset(0xD8)] public readonly uint UnkSortStashesBy;
-        [FieldOffset(0x100)] public IntPtr pSkills;
-        [FieldOffset(0x150)] public IntPtr pListNext;
-        [FieldOffset(0x158)] public IntPtr pRoomNext;
-        [FieldOffset(0x174)] public PlayerClass playerClass;
+        [FieldOffset(0x100)]
+        public IntPtr pSkills;
 
-        //[FieldOffset(0x194)] public ushort unk1;
-        //[FieldOffset(0x19D)] public byte isAlive2; //could be = 16 for alive players
+        // New/unknown field inserted by the current D2R layout.
+        [FieldOffset(0x150)]
+        public ulong Unknown150;
+
+        [FieldOffset(0x158)]
+        public IntPtr pListNext;
+
+        [FieldOffset(0x160)]
+        public IntPtr pRoomNext;
+
+        [FieldOffset(0x17C)]
+        public PlayerClass playerClass;
+
         [MarshalAs(UnmanagedType.U1)]
-        [FieldOffset(0x1A6)] public bool isCorpse;
+        [FieldOffset(0x1AE)]
+        public bool isCorpse;
 
         //[FieldOffset(0x1B8)] public uint unk2;
         //[FieldOffset(0x1BC)] public uint unk3;

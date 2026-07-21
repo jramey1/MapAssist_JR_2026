@@ -1,4 +1,4 @@
-using MapAssist.Helpers;
+﻿using MapAssist.Helpers;
 using MapAssist.Settings;
 using MonsterTypeFlags = MapAssist.Structs.MonsterTypeFlags;
 using MapAssist.Types;
@@ -59,6 +59,7 @@ namespace MapAssist
         private GameDataReader _gameDataReader;
         private GameData _gameData;
         private AreaData _areaData;
+        private UnitPlayer _corpsePlayerUnit;
         private UnitAny[] _unitList = new UnitAny[0];
         private bool _areaChanged;
         private bool _initialized;
@@ -75,6 +76,17 @@ namespace MapAssist
                 lock (_updateLock)
                 {
                     return _gameData;
+                }
+            }
+        }
+
+        public UnitPlayer corpsePlayerUnit
+        {
+            get
+            {
+                lock (_updateLock)
+                {
+                    return _corpsePlayerUnit;
                 }
             }
         }
@@ -1182,8 +1194,42 @@ namespace MapAssist
             _areaData = result.Item2;
             _areaChanged = result.Item3;
             _unitList = BuildUnitList(_gameData, false);
+            _corpsePlayerUnit = FindCorpsePlayerUnitNoLock();
 
             return _gameData;
+        }
+
+        /// <summary>
+        /// Returns the first current player unit marked as a dead player unit.
+        /// Returns null when the game data is unavailable, no corpse exists, or
+        /// the player hash table cannot be read during this update.
+        /// </summary>
+        private UnitPlayer FindCorpsePlayerUnitNoLock()
+        {
+            if (_gameData == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                UnitPlayer[] rawPlayerUnits =
+                    GameMemory.GetUnits<UnitPlayer>(UnitType.Player, false);
+
+                if (rawPlayerUnits == null)
+                {
+                    return null;
+                }
+
+                return rawPlayerUnits.FirstOrDefault(unit =>
+                    unit != null &&
+                    unit.IsDeadPlayerUnit);
+            }
+            catch
+            {
+                // Player units can disappear while D2R memory is being read.
+                return null;
+            }
         }
 
         /// <summary>

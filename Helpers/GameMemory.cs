@@ -92,24 +92,31 @@ namespace MapAssist.Helpers
 
                 var rawPlayerUnits = GetUnits<UnitPlayer>(UnitType.Player).Select(x => x.Update()).Where(x => x != null).ToArray();
                 //var playerUnit = rawPlayerUnits.FirstOrDefault(x => x.IsPlayer && x.IsPlayerUnit);
-                UnitPlayer playerUnit = rawPlayerUnits.FirstOrDefault(unit =>
-                {
-                    if (unit == null || !unit.IsPlayerUnit)
-                    {
-                        return false;
-                    }
+                //UnitPlayer playerUnit = rawPlayerUnits.FirstOrDefault(unit =>
+                //{
+                //    if (unit == null || !unit.IsPlayerUnit)
+                //    {
+                //        return false;
+                //    }
 
-                    try
-                    {
-                        return unit.Struct.Mode != 17 &&
-                               unit.Struct.pAct != IntPtr.Zero &&
-                               unit.Struct.pPath != IntPtr.Zero;
-                    }
-                    catch
-                    {
-                        return false;
-                    }
-                });
+                //    try
+                //    {
+                //        return unit.Struct.Mode != 17 &&
+                //               unit.Struct.pAct != IntPtr.Zero &&
+                //               unit.Struct.pPath != IntPtr.Zero;
+                //    }
+                //    catch
+                //    {
+                //        return false;
+                //    }
+                //});
+                UnitPlayer playerUnit = rawPlayerUnits.FirstOrDefault(unit =>
+                    unit != null &&
+                    unit.UnitType == UnitType.Player &&
+                    unit.Struct.Mode != 17 &&
+                    unit.Struct.pAct != IntPtr.Zero &&
+                    unit.Struct.pPath != IntPtr.Zero &&
+                    unit.Struct.pInventory != IntPtr.Zero);
                 if (playerUnit == null)
                 {
                     if (_errorThrown) return null;
