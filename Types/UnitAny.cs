@@ -236,17 +236,31 @@ namespace MapAssist.Types
         /// both records use player mode 17, but only the dead player-state record
         /// retains the character's Level, MaxLife, and Experience base stats.
         /// </summary>
-        public bool IsCorpseOnGround =>
-            IsMode17PlayerUnit &&
-            !HasCharacterIdentityStats();
+        public bool IsCorpseOnGround
+        {
+            get
+            {
+                bool hasCharacterIdentityStats;
+                return IsMode17PlayerUnit &&
+                       TryHasCharacterIdentityStats(out hasCharacterIdentityStats) &&
+                       !hasCharacterIdentityStats;
+            }
+        }
 
         /// <summary>
         /// True for the player's dead character-state unit before resurrection.
         /// This is not the clickable corpse/body on the ground.
         /// </summary>
-        public bool IsPlayerDeadAwaitingResurrection =>
-            IsMode17PlayerUnit &&
-            HasCharacterIdentityStats();
+        public bool IsPlayerDeadAwaitingResurrection
+        {
+            get
+            {
+                bool hasCharacterIdentityStats;
+                return IsMode17PlayerUnit &&
+                       TryHasCharacterIdentityStats(out hasCharacterIdentityStats) &&
+                       hasCharacterIdentityStats;
+            }
+        }
 
         /// <summary>
         /// True for either mode-17 player representation: the dead character state
@@ -263,8 +277,10 @@ namespace MapAssist.Types
         [Obsolete("Use IsCorpseOnGround for the clickable body, or IsPlayerDeadAwaitingResurrection for the dead player state.")]
         public bool IsDeadPlayerUnit => IsCorpseOnGround;
 
-        private bool HasCharacterIdentityStats()
+        private bool TryHasCharacterIdentityStats(out bool hasCharacterIdentityStats)
         {
+            hasCharacterIdentityStats = false;
+
             try
             {
                 Dictionary<Stats.Stat, int> baseStats = StatsBase;
@@ -285,10 +301,11 @@ namespace MapAssist.Types
                     baseStats = ReadStats(statsStruct.BaseStats.Stats).Item1;
                 }
 
-                return baseStats != null &&
-                       baseStats.ContainsKey(Types.Stats.Stat.Level) &&
-                       baseStats.ContainsKey(Types.Stats.Stat.MaxLife) &&
-                       baseStats.ContainsKey(Types.Stats.Stat.Experience);
+                hasCharacterIdentityStats = baseStats != null &&
+                                            baseStats.ContainsKey(Types.Stats.Stat.Level) &&
+                                            baseStats.ContainsKey(Types.Stats.Stat.MaxLife) &&
+                                            baseStats.ContainsKey(Types.Stats.Stat.Experience);
+                return true;
             }
             catch
             {
