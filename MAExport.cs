@@ -1,4 +1,4 @@
-using MapAssist.Helpers;
+﻿using MapAssist.Helpers;
 using MapAssist.Settings;
 using MonsterTypeFlags = MapAssist.Structs.MonsterTypeFlags;
 using MapAssist.Types;
@@ -10,6 +10,9 @@ using System.Diagnostics;
 using SharpDX;
 using System.Linq;
 using System.Text;
+using System.Collections;
+using System.Reflection;
+//using MapAssist.Structs;
 
 namespace MapAssist
 {
@@ -57,6 +60,7 @@ namespace MapAssist
         private GameDataReader _gameDataReader;
         private GameData _gameData;
         private AreaData _areaData;
+        private UnitPlayer _corpsePlayerUnit;
         private UnitAny[] _unitList = new UnitAny[0];
         private bool _areaChanged;
         private bool _initialized;
@@ -73,6 +77,17 @@ namespace MapAssist
                 lock (_updateLock)
                 {
                     return _gameData;
+                }
+            }
+        }
+
+        public UnitPlayer corpsePlayerUnit
+        {
+            get
+            {
+                lock (_updateLock)
+                {
+                    return _corpsePlayerUnit;
                 }
             }
         }
@@ -174,7 +189,18 @@ namespace MapAssist
                 return UpdateCore();
             }
         }
-
+        public bool getMenuData(out Structs.MenuData menuData)
+        {
+            menuData = new Structs.MenuData();
+            if ((global.OffsetsToPopulate & GameDataOffset.MenuData) == GameDataOffset.MenuData)
+            {
+                ProcessContext pc = GameManager.GetProcessContext();
+                if (pc == null) { return false; }
+                menuData = pc.Read<Structs.MenuData>(GameManager.MenuDataOffset);
+                return true;
+            }
+            return false;
+        }
         /// <summary>
         /// Updates MapAssist and returns the flat UnitAny list from that update.
         /// </summary>
@@ -876,7 +902,6 @@ namespace MapAssist
         public string GetAllUnitsReport()
         {
             Update();
-
             StringBuilder sb = new StringBuilder();
 
             foreach (UnitAny unit in CurrentUnitList)
@@ -1181,8 +1206,42 @@ namespace MapAssist
             _areaData = result.Item2;
             _areaChanged = result.Item3;
             _unitList = BuildUnitList(_gameData, false);
+            _corpsePlayerUnit = FindCorpsePlayerUnitNoLock();
 
             return _gameData;
+        }
+
+        /// <summary>
+        /// Returns the first current player unit marked as a dead player unit.
+        /// Returns null when the game data is unavailable, no corpse exists, or
+        /// the player hash table cannot be read during this update.
+        /// </summary>
+        private UnitPlayer FindCorpsePlayerUnitNoLock()
+        {
+            if (_gameData == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                UnitPlayer[] rawPlayerUnits =
+                    GameMemory.GetUnits<UnitPlayer>(UnitType.Player, false);
+
+                if (rawPlayerUnits == null)
+                {
+                    return null;
+                }
+
+                return rawPlayerUnits.FirstOrDefault(unit =>
+                    unit != null &&
+                    unit.IsDeadPlayerUnit);
+            }
+            catch
+            {
+                // Player units can disappear while D2R memory is being read.
+                return null;
+            }
         }
 
         /// <summary>
@@ -1509,7 +1568,590 @@ namespace MapAssist
 
             LogManager.Configuration = config;
         }
+        #region get_unit_info
+        private sealed class UnitListColumn
+        {
+            public string ColumnName;
+            public List<MemberInfo> MemberPath;
+        }
+        private static void AddUnitColumn(
+           string columnName,
+           List<MemberInfo> memberPath,
+           List<UnitListColumn> columns,
+           HashSet<string> columnNames)
+        {
+            /*
+             * A derived class can hide a base member with the same name.
+             * Do not add duplicate ListView column headers.
+             */
+            if (!columnNames.Add(columnName))
+            {
+                return;
+            }
 
+            columns.Add(new UnitListColumn
+            {
+                ColumnName = columnName,
+                MemberPath = memberPath
+            });
+        }
+
+        private static bool IsReadableUnitMember(MemberInfo member)
+        {
+            PropertyInfo property = member as PropertyInfo;
+
+            if (property != null)
+            {
+                /*
+                 * Ignore indexers such as:
+                 *
+                 * public object this[int index] { get; }
+                 */
+                if (property.GetIndexParameters().Length != 0)
+                {
+                    return false;
+                }
+
+                MethodInfo getter = property.GetGetMethod(false);
+
+                return property.CanRead &&
+                       getter != null &&
+                       !getter.IsStatic;
+            }
+
+            FieldInfo field = member as FieldInfo;
+
+            return field != null && !field.IsStatic;
+        }
+
+        private static Type GetUnitMemberType(MemberInfo member)
+        {
+            PropertyInfo property = member as PropertyInfo;
+
+            if (property != null)
+            {
+                return property.PropertyType;
+            }
+
+            FieldInfo field = member as FieldInfo;
+
+            if (field != null)
+            {
+                return field.FieldType;
+            }
+
+            return null;
+        }
+
+        private static object ReadMemberPathValue(
+            object source,
+            IList<MemberInfo> memberPath)
+        {
+            object currentValue = source;
+
+            foreach (MemberInfo member in memberPath)
+            {
+                if (currentValue == null)
+                {
+                    return null;
+                }
+
+                try
+                {
+                    PropertyInfo property = member as PropertyInfo;
+
+                    if (property != null)
+                    {
+                        currentValue = property.GetValue(
+                            currentValue,
+                            null);
+
+                        continue;
+                    }
+
+                    FieldInfo field = member as FieldInfo;
+
+                    if (field != null)
+                    {
+                        currentValue = field.GetValue(currentValue);
+                    }
+                }
+                catch (TargetInvocationException ex)
+                {
+                    Exception actualException =
+                        ex.InnerException ?? ex;
+
+                    return "<ERROR: " +
+                           actualException.Message +
+                           ">";
+                }
+                catch (Exception ex)
+                {
+                    return "<ERROR: " + ex.Message + ">";
+                }
+            }
+
+            return currentValue;
+        }
+
+        private static bool ShouldDisplayAsSingleColumn(Type type)
+        {
+            if (type.IsPrimitive || type.IsEnum)
+            {
+                return true;
+            }
+
+            return type == typeof(string) ||
+                   type == typeof(decimal) ||
+                   type == typeof(DateTime) ||
+                   type == typeof(DateTimeOffset) ||
+                   type == typeof(TimeSpan) ||
+                   type == typeof(Guid) ||
+                   type == typeof(IntPtr) ||
+                   type == typeof(UIntPtr) ||
+                   type == typeof(Type);
+        }
+
+        private static string FormatUnitMemberValue(object value)
+        {
+            if (value == null)
+            {
+                return "<null>";
+            }
+
+            if (value is IntPtr)
+            {
+                long pointer = ((IntPtr)value).ToInt64();
+
+                return pointer == 0
+                    ? "0x0"
+                    : "0x" + pointer.ToString("X");
+            }
+
+            if (value is UIntPtr)
+            {
+                ulong pointer = ((UIntPtr)value).ToUInt64();
+
+                return pointer == 0
+                    ? "0x0"
+                    : "0x" + pointer.ToString("X");
+            }
+
+            if (value is byte[])
+            {
+                return BitConverter.ToString((byte[])value);
+            }
+
+            IEnumerable enumerable = value as IEnumerable;
+
+            if (enumerable != null && !(value is string))
+            {
+                List<string> values = new List<string>();
+
+                foreach (object entry in enumerable)
+                {
+                    values.Add(
+                        entry == null
+                            ? "<null>"
+                            : entry.ToString());
+                }
+
+                return string.Join(", ", values.ToArray());
+            }
+
+            return Convert.ToString(value) ?? string.Empty;
+        }
+
+        private static int GetMetadataTokenSafely(MemberInfo member)
+        {
+            try
+            {
+                return member.MetadataToken;
+            }
+            catch
+            {
+                return int.MaxValue;
+            }
+        }
+        public static string GetUnitPlayerInfo(UnitPlayer unit)
+        {
+            return GetUnitInfo(unit);
+        }
+
+        public static string GetUnitPlayerInfoList(
+            IEnumerable<UnitPlayer> units)
+        {
+            return GetUnitInfoList(units);
+        }
+
+        public static string GetUnitMonsterInfo(UnitMonster unit)
+        {
+            return GetUnitInfo(unit);
+        }
+
+        public static string GetUnitMonsterInfoList(
+            IEnumerable<UnitMonster> units)
+        {
+            return GetUnitInfoList(units);
+        }
+
+        public static string GetUnitObjectInfo(UnitObject unit)
+        {
+            return GetUnitInfo(unit);
+        }
+
+        public static string GetUnitObjectInfoList(
+            IEnumerable<UnitObject> units)
+        {
+            return GetUnitInfoList(units);
+        }
+
+        public static string GetUnitMissileInfo(UnitMissile unit)
+        {
+            return GetUnitInfo(unit);
+        }
+
+        public static string GetUnitMissileInfoList(
+            IEnumerable<UnitMissile> units)
+        {
+            return GetUnitInfoList(units);
+        }
+
+        public static string GetUnitItemInfo(UnitItem unit)
+        {
+            return GetUnitInfo(unit);
+        }
+
+        public static string GetUnitItemInfoList(
+            IEnumerable<UnitItem> units)
+        {
+            return GetUnitInfoList(units);
+        }
+
+        private static string GetUnitInfo<T>(T unit)
+            where T : UnitAny
+        {
+            List<UnitListColumn> columns = GetUnitListColumns(typeof(T));
+
+            if (columns.Count == 0)
+            {
+                return unit == null ? "<null>" : unit.ToString();
+            }
+
+            StringBuilder result = new StringBuilder();
+
+            for (int i = 0; i < columns.Count; i++)
+            {
+                UnitListColumn column = columns[i];
+                string value = unit == null
+                    ? "<null>"
+                    : FormatUnitMemberValue(
+                        ReadMemberPathValue(unit, column.MemberPath));
+
+                result.Append(column.ColumnName);
+                result.Append(": ");
+                result.Append(value);
+
+                if (i < columns.Count - 1)
+                {
+                    result.AppendLine();
+                }
+            }
+
+            return result.ToString();
+        }
+
+        private static string GetUnitInfoList<T>(IEnumerable<T> units)
+            where T : UnitAny
+        {
+            List<UnitListColumn> columns = GetUnitListColumns(typeof(T));
+            StringBuilder result = new StringBuilder();
+
+            if (columns.Count == 0)
+            {
+                result.Append("Value");
+
+                if (units == null)
+                {
+                    return result.ToString();
+                }
+
+                foreach (T unit in units)
+                {
+                    result.AppendLine();
+                    result.Append(EscapeCsvValue(
+                        unit == null ? "<null>" : unit.ToString()));
+                }
+
+                return result.ToString();
+            }
+
+            for (int i = 0; i < columns.Count; i++)
+            {
+                if (i > 0)
+                {
+                    result.Append(',');
+                }
+
+                result.Append(EscapeCsvValue(columns[i].ColumnName));
+            }
+
+            if (units == null)
+            {
+                return result.ToString();
+            }
+
+            foreach (T unit in units)
+            {
+                result.AppendLine();
+
+                for (int i = 0; i < columns.Count; i++)
+                {
+                    if (i > 0)
+                    {
+                        result.Append(',');
+                    }
+
+                    string value;
+
+                    if (unit == null)
+                    {
+                        // Match the ListView's null-row behavior.
+                        value = i == 0 ? "<null>" : string.Empty;
+                    }
+                    else
+                    {
+                        value = FormatUnitMemberValue(
+                            ReadMemberPathValue(
+                                unit,
+                                columns[i].MemberPath));
+                    }
+
+                    result.Append(EscapeCsvValue(value));
+                }
+            }
+
+            return result.ToString();
+        }
+        private static List<UnitListColumn> GetUnitListColumns(
+          Type concreteUnitType)
+        {
+            if (concreteUnitType == null)
+            {
+                throw new ArgumentNullException(nameof(concreteUnitType));
+            }
+
+            if (!typeof(UnitAny).IsAssignableFrom(concreteUnitType))
+            {
+                throw new ArgumentException(
+                    concreteUnitType.FullName +
+                    " does not derive from UnitAny.",
+                    nameof(concreteUnitType));
+            }
+
+            List<UnitListColumn> columns =
+                new List<UnitListColumn>();
+
+            HashSet<string> columnNames =
+                new HashSet<string>(StringComparer.Ordinal);
+
+            /*
+             * UnitAny is explicitly processed first.
+             *
+             * DeclaredOnly ensures that we only get members actually defined
+             * by UnitAny, rather than also retrieving inherited Object members.
+             */
+            AddFlattenedMembers(
+                typeof(UnitAny),
+                string.Empty,
+                new List<MemberInfo>(),
+                columns,
+                columnNames,
+                new HashSet<Type>(),
+                true);
+
+            /*
+             * Build the inheritance chain after UnitAny.
+             *
+             * Example:
+             *
+             * UnitAny
+             *   -> SomeIntermediateUnit
+             *       -> UnitPlayer
+             *
+             * The intermediate type's members will appear before UnitPlayer's.
+             */
+            List<Type> derivedTypes = new List<Type>();
+
+            Type currentType = concreteUnitType;
+
+            while (currentType != null &&
+                   currentType != typeof(UnitAny))
+            {
+                derivedTypes.Add(currentType);
+                currentType = currentType.BaseType;
+            }
+
+            derivedTypes.Reverse();
+
+            foreach (Type derivedType in derivedTypes)
+            {
+                AddFlattenedMembers(
+                    derivedType,
+                    string.Empty,
+                    new List<MemberInfo>(),
+                    columns,
+                    columnNames,
+                    new HashSet<Type>(),
+                    true);
+            }
+
+            return columns;
+        }
+        private static void AddFlattenedMembers(
+          Type typeToInspect,
+          string parentName,
+          List<MemberInfo> parentPath,
+          List<UnitListColumn> columns,
+          HashSet<string> columnNames,
+          HashSet<Type> currentTypePath,
+          bool declaredOnly)
+        {
+            BindingFlags flags =
+                BindingFlags.Instance |
+                BindingFlags.Public;
+
+            if (declaredOnly)
+            {
+                flags |= BindingFlags.DeclaredOnly;
+            }
+
+            List<MemberInfo> members = typeToInspect
+                .GetMembers(flags)
+                .Where(IsReadableUnitMember)
+                .OrderBy(GetMetadataTokenSafely)
+                .ToList();
+
+            foreach (MemberInfo member in members)
+            {
+                Type memberType = GetUnitMemberType(member);
+
+                if (memberType == null)
+                {
+                    continue;
+                }
+
+                string memberName = string.IsNullOrEmpty(parentName)
+                    ? member.Name
+                    : parentName + "." + member.Name;
+
+                List<MemberInfo> memberPath =
+                    new List<MemberInfo>(parentPath);
+
+                memberPath.Add(member);
+
+                Type effectiveType =
+                    Nullable.GetUnderlyingType(memberType) ?? memberType;
+
+                if (ShouldDisplayAsSingleColumn(effectiveType))
+                {
+                    AddUnitColumn(
+                        memberName,
+                        memberPath,
+                        columns,
+                        columnNames);
+
+                    continue;
+                }
+
+                /*
+                 * A collection should remain one column rather than expanding
+                 * properties such as Count, Capacity, SyncRoot, and Item.
+                 */
+                if (effectiveType != typeof(string) &&
+                    typeof(IEnumerable).IsAssignableFrom(effectiveType))
+                {
+                    AddUnitColumn(
+                        memberName,
+                        memberPath,
+                        columns,
+                        columnNames);
+
+                    continue;
+                }
+
+                /*
+                 * Prevent circular expansion such as:
+                 *
+                 * Parent.Child.Parent.Child.Parent...
+                 */
+                if (currentTypePath.Contains(effectiveType))
+                {
+                    AddUnitColumn(
+                        memberName,
+                        memberPath,
+                        columns,
+                        columnNames);
+
+                    continue;
+                }
+
+                HashSet<Type> nestedTypePath =
+                    new HashSet<Type>(currentTypePath);
+
+                nestedTypePath.Add(effectiveType);
+
+                int columnCountBeforeExpansion = columns.Count;
+
+                /*
+                 * Do not use DeclaredOnly here. For a nested class, its inherited
+                 * public members are also part of that nested value.
+                 */
+                AddFlattenedMembers(
+                    effectiveType,
+                    memberName,
+                    memberPath,
+                    columns,
+                    columnNames,
+                    nestedTypePath,
+                    false);
+
+                /*
+                 * Some classes and structs have no readable public properties
+                 * or fields. In that situation, retain the parent as one column
+                 * and display its ToString() result.
+                 */
+                if (columns.Count == columnCountBeforeExpansion)
+                {
+                    AddUnitColumn(
+                        memberName,
+                        memberPath,
+                        columns,
+                        columnNames);
+                }
+            }
+        }
+        private static string EscapeCsvValue(string value)
+        {
+            if (value == null)
+            {
+                return string.Empty;
+            }
+
+            bool requiresQuotes =
+                value.IndexOf(',') >= 0 ||
+                value.IndexOf('"') >= 0 ||
+                value.IndexOf('\r') >= 0 ||
+                value.IndexOf('\n') >= 0;
+
+            if (!requiresQuotes)
+            {
+                return value;
+            }
+
+            return "\"" + value.Replace("\"", "\"\"") + "\"";
+        }
+        #endregion get_unit_info
         private struct UnitKey : IEquatable<UnitKey>
         {
             public UnitKey(UnitType unitType, uint unitId)

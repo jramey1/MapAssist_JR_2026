@@ -98,18 +98,22 @@ namespace MapAssist.Types
         public bool IsActiveInfinity => WearingItems.Any(item => item.IsRuneWord && item.Prefixes[0] == 20566 && (item.ItemData.ItemFlags & ItemFlags.IFLAG_SWITCHOUT) == 0); // When joining a game IFLAG_SWITCHIN/IFLAG_SWITCHOUT isn't set, so need to check whether IFLAG_SWITCHOUT doesn't exist
         public UnitItem[][] BeltItems { get; set; } = new UnitItem[][] { };
         public int BeltSize => BeltItems.Length > 0 ? BeltItems[0].Length : 0;
-        public float Life => Stats.TryGetValue(Types.Stats.Stat.Life, out var val) && Types.Stats.StatShifts.TryGetValue(Types.Stats.Stat.Life, out var shift) ? val >> shift : 0;
-        public float MaxLife => Stats.TryGetValue(Types.Stats.Stat.MaxLife, out var val) && Types.Stats.StatShifts.TryGetValue(Types.Stats.Stat.Life, out var shift) ? val >> shift : 0;
-        public float Mana => Stats.TryGetValue(Types.Stats.Stat.Mana, out var val) && Types.Stats.StatShifts.TryGetValue(Types.Stats.Stat.Life, out var shift) ? val >> shift : 0;
-        public float MaxMana => Stats.TryGetValue(Types.Stats.Stat.MaxMana, out var val) && Types.Stats.StatShifts.TryGetValue(Types.Stats.Stat.Life, out var shift) ? val >> shift : 0;
+        public float Life => Stats == null ? 0 : Stats.TryGetValue(Types.Stats.Stat.Life, out var val) && Types.Stats.StatShifts.TryGetValue(Types.Stats.Stat.Life, out var shift) ? val >> shift : 0;
+        public float MaxLife => Stats == null ? 0 : Stats.TryGetValue(Types.Stats.Stat.MaxLife, out var val) && Types.Stats.StatShifts.TryGetValue(Types.Stats.Stat.Life, out var shift) ? val >> shift : 0;
+        public float Mana => Stats == null ? 0 : Stats.TryGetValue(Types.Stats.Stat.Mana, out var val) && Types.Stats.StatShifts.TryGetValue(Types.Stats.Stat.Life, out var shift) ? val >> shift : 0;
+        public float MaxMana => Stats == null ? 0 : Stats.TryGetValue(Types.Stats.Stat.MaxMana, out var val) && Types.Stats.StatShifts.TryGetValue(Types.Stats.Stat.Life, out var shift) ? val >> shift : 0;
         public float LifePercentage => 100f * Life / MaxLife;
         public float ManaPercentage => 100f * Mana / MaxMana;
-        public int Level => Stats.TryGetValue(Types.Stats.Stat.Level, out var lvl) ? lvl : 0;
+        public int Level => Stats == null ? 0 : Stats.TryGetValue(Types.Stats.Stat.Level, out var lvl) ? lvl : 0;
 
         public long Experience
         {
             get
             {
+                if (Stats == null)
+                {
+                    return 0;
+                }
                 var maxInt = (long)int.MaxValue + 1;
                 Stats.TryGetValue(Types.Stats.Stat.Experience, out var exp);
                 return exp < 0 ? maxInt + exp + maxInt : exp;
@@ -136,6 +140,10 @@ namespace MapAssist.Types
 
         public Dictionary<Resist, int> GetResists(Difficulty difficulty)
         {
+            if (Stats == null)
+            {
+                return new Dictionary<Resist, int>();
+            }
             var penalty = (ushort)difficulty == 2 ? 100 : (ushort)difficulty == 1 ? 40 : 0;
 
             return new (Resist, Stats.Stat, Stats.Stat)[] {
