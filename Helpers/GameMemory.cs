@@ -113,7 +113,7 @@ namespace MapAssist.Helpers
                 UnitPlayer playerUnit = rawPlayerUnits.FirstOrDefault(unit =>
                     unit != null &&
                     unit.UnitType == UnitType.Player &&
-                    unit.Struct.Mode != 17 &&
+                    //unit.Struct.Mode != 17 &&
                     unit.Struct.pAct != IntPtr.Zero &&
                     unit.Struct.pPath != IntPtr.Zero &&
                     unit.Struct.pInventory != IntPtr.Zero);

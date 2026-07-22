@@ -12,6 +12,7 @@ using System.Linq;
 using System.Text;
 using System.Collections;
 using System.Reflection;
+//using MapAssist.Structs;
 
 namespace MapAssist
 {
@@ -188,7 +189,18 @@ namespace MapAssist
                 return UpdateCore();
             }
         }
-
+        public bool getMenuData(out Structs.MenuData menuData)
+        {
+            menuData = new Structs.MenuData();
+            if ((global.OffsetsToPopulate & GameDataOffset.MenuData) == GameDataOffset.MenuData)
+            {
+                ProcessContext pc = GameManager.GetProcessContext();
+                if (pc == null) { return false; }
+                menuData = pc.Read<Structs.MenuData>(GameManager.MenuDataOffset);
+                return true;
+            }
+            return false;
+        }
         /// <summary>
         /// Updates MapAssist and returns the flat UnitAny list from that update.
         /// </summary>

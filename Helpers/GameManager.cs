@@ -25,14 +25,14 @@ namespace MapAssist.Helpers
 
         public static event StatusUpdateHandler OnGameAccessDenied;
 
-        private static Dictionary<int, IntPtr> _UnitHashTableOffset = new Dictionary<int, IntPtr>();
-        private static Dictionary<int, IntPtr> _ExpansionCheckOffset = new Dictionary<int, IntPtr>();
-        private static Dictionary<int, IntPtr> _GameNameOffset = new Dictionary<int, IntPtr>();
-        private static Dictionary<int, IntPtr> _MenuDataOffset = new Dictionary<int, IntPtr>();
-        private static Dictionary<int, IntPtr> _RosterDataOffset = new Dictionary<int, IntPtr>();
-        private static Dictionary<int, IntPtr> _InteractedNpcOffset = new Dictionary<int, IntPtr>();
-        private static Dictionary<int, IntPtr> _LastHoverDataOffset = new Dictionary<int, IntPtr>();
-        private static Dictionary<int, IntPtr> _PetsOffsetOffset = new Dictionary<int, IntPtr>();
+        public static Dictionary<int, IntPtr> _UnitHashTableOffset = new Dictionary<int, IntPtr>();
+        public static Dictionary<int, IntPtr> _ExpansionCheckOffset = new Dictionary<int, IntPtr>();
+        public static Dictionary<int, IntPtr> _GameNameOffset = new Dictionary<int, IntPtr>();
+        public static Dictionary<int, IntPtr> _MenuDataOffset = new Dictionary<int, IntPtr>();
+        public static Dictionary<int, IntPtr> _RosterDataOffset = new Dictionary<int, IntPtr>();
+        public static Dictionary<int, IntPtr> _InteractedNpcOffset = new Dictionary<int, IntPtr>();
+        public static Dictionary<int, IntPtr> _LastHoverDataOffset = new Dictionary<int, IntPtr>();
+        public static Dictionary<int, IntPtr> _PetsOffsetOffset = new Dictionary<int, IntPtr>();
 
         private static WindowsExternal.WinEventDelegate _eventDelegate = null;
 
